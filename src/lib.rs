@@ -1,7 +1,7 @@
 mod macros;
 mod tests;
 
-use std::collections::HashMap;
+use im::hashmap::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
