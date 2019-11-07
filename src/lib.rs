@@ -1,4 +1,4 @@
-#[cfg(test)]
+mod macros;
 mod tests;
 
 use std::collections::HashMap;
@@ -11,13 +11,13 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Variable(String);
+pub struct Variable(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Word(String);
+pub struct Word(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Sequence(Vec<Expr>);
+pub struct Sequence(pub Vec<Expr>);
 
 #[derive(Clone, Default)]
 pub struct State {
