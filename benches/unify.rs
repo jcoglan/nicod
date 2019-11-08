@@ -2,6 +2,8 @@
 extern crate test;
 use test::Bencher;
 
+use nicod::expr::*;
+use nicod::state::*;
 use nicod::*;
 
 #[bench]

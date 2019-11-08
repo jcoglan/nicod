@@ -1,6 +1,8 @@
 #![cfg(test)]
 
-use super::*;
+use crate::expr::*;
+use crate::state::*;
+use crate::*;
 
 #[test]
 fn unify_equal_words() {
