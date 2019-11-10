@@ -111,6 +111,19 @@ fn reject_unequal_nested_sequences() {
 }
 
 #[test]
+fn unify_repeat_indirect_vars() {
+    let state = unify!(seq(var(x), wrd(a), var(x)), seq(var(y), var(y), wrd(a))).unwrap();
+    assert_eq!(state.resolve(&expr!(var(x))), expr!(wrd(a)));
+    assert_eq!(state.resolve(&expr!(var(y))), expr!(wrd(a)));
+}
+
+#[test]
+fn reject_repeat_indirect_vars() {
+    let state = unify!(seq(var(x), wrd(a), var(x)), seq(var(y), var(y), wrd(b)));
+    assert!(state.is_none());
+}
+
+#[test]
 fn unify_nested_sequences_with_variables() {
     let state = unify!(
         seq(seq(var(w), wrd(b)), wrd(c), seq(wrd(d), var(x))),
@@ -126,6 +139,29 @@ fn unify_nested_sequences_with_variables() {
     assert_eq!(state.resolve(&expr!(var(x))), expr!(seq(wrd(e), wrd(f))));
     assert_eq!(state.resolve(&expr!(var(y))), expr!(wrd(b)));
     assert_eq!(state.resolve(&expr!(var(z))), expr!(wrd(c)));
+}
+
+#[test]
+fn unify_partial_pairs() {
+    let state = unify!(
+        seq(seq(var(y), wrd(b)), var(x)),
+        seq(var(x), seq(wrd(a), var(z)))
+    )
+    .unwrap();
+
+    assert_eq!(state.resolve(&expr!(var(x))), expr!(seq(wrd(a), wrd(b))));
+    assert_eq!(state.resolve(&expr!(var(y))), expr!(wrd(a)));
+    assert_eq!(state.resolve(&expr!(var(z))), expr!(wrd(b)));
+}
+
+#[test]
+fn reject_partial_pairs() {
+    let state = unify!(
+        seq(seq(var(y), wrd(b)), var(x)),
+        seq(var(x), seq(wrd(a), var(y)))
+    );
+
+    assert!(state.is_none());
 }
 
 #[test]
