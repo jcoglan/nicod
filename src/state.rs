@@ -40,8 +40,8 @@ impl State {
     }
 
     fn unify_mut(&mut self, x: &Rc<Expr>, y: &Rc<Expr>) -> bool {
-        let x = self.resolve(x);
-        let y = self.resolve(y);
+        let x = self.resolve_var(x);
+        let y = self.resolve_var(y);
 
         if x == y {
             return true;
@@ -68,5 +68,19 @@ impl State {
     fn assign(&mut self, var: &Variable, expr: &Rc<Expr>) -> bool {
         self.values.insert(Rc::new(var.clone()), Rc::clone(expr));
         true
+    }
+
+    fn resolve_var(&self, expr: &Rc<Expr>) -> Rc<Expr> {
+        let mut expr = expr;
+
+        while let Expr::Var(var) = &**expr {
+            if let Some(value) = self.values.get(var) {
+                expr = value;
+            } else {
+                break;
+            }
+        }
+
+        Rc::clone(expr)
     }
 }
