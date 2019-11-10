@@ -30,36 +30,43 @@ impl State {
     }
 
     pub fn unify(&self, x: &Rc<Expr>, y: &Rc<Expr>) -> Option<State> {
+        let mut state = self.clone();
+
+        if state.unify_mut(x, y) {
+            Some(state)
+        } else {
+            None
+        }
+    }
+
+    fn unify_mut(&mut self, x: &Rc<Expr>, y: &Rc<Expr>) -> bool {
         let x = self.resolve(x);
         let y = self.resolve(y);
 
         if x == y {
-            return Some(self.clone());
+            return true;
         }
 
         match (&*x, &*y) {
-            (Expr::Var(v), _) => Some(self.assign(v, &y)),
-            (_, Expr::Var(v)) => Some(self.assign(v, &x)),
+            (Expr::Var(v), _) => self.assign(v, &y),
+            (_, Expr::Var(v)) => self.assign(v, &x),
             (Expr::Seq(a), Expr::Seq(b)) => self.unify_seq(&a, &b),
-            _ => None,
+            _ => false,
         }
     }
 
-    fn unify_seq(&self, a: &Sequence, b: &Sequence) -> Option<State> {
+    fn unify_seq(&mut self, a: &Sequence, b: &Sequence) -> bool {
         if a.0.len() != b.0.len() {
-            return None;
+            return false;
         }
 
         let zip = a.0.iter().zip(&b.0);
 
-        zip.fold(Some(self.clone()), |state, (x, y)| {
-            state.and_then(|s| s.unify(x, y))
-        })
+        zip.fold(true, |state, (x, y)| state && self.unify_mut(x, y))
     }
 
-    fn assign(&self, var: &Variable, expr: &Rc<Expr>) -> State {
-        let mut values = self.values.clone();
-        values.insert(Rc::new(var.clone()), Rc::clone(expr));
-        State { values }
+    fn assign(&mut self, var: &Variable, expr: &Rc<Expr>) -> bool {
+        self.values.insert(Rc::new(var.clone()), Rc::clone(expr));
+        true
     }
 }
