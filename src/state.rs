@@ -1,9 +1,10 @@
 use crate::expr::*;
 use im::hashmap::HashMap;
+use std::rc::Rc;
 
 #[derive(Clone, Default)]
 pub struct State {
-    pub values: HashMap<Variable, Expr>,
+    pub values: HashMap<Rc<Variable>, Rc<Expr>>,
 }
 
 impl State {
@@ -11,24 +12,24 @@ impl State {
         State::default()
     }
 
-    pub fn resolve(&self, expr: &Expr) -> Expr {
-        match expr {
+    pub fn resolve(&self, expr: &Rc<Expr>) -> Rc<Expr> {
+        match &**expr {
             Expr::Var(var) => {
                 if let Some(value) = self.values.get(var) {
                     self.resolve(value)
                 } else {
-                    Expr::Var(var.clone())
+                    Rc::clone(expr)
                 }
             }
             Expr::Seq(seq) => {
                 let items = seq.0.iter().map(|item| self.resolve(item));
-                Expr::Seq(Sequence(items.collect()))
+                Rc::new(Expr::Seq(Sequence(items.collect())))
             }
-            _ => expr.clone(),
+            _ => Rc::clone(expr),
         }
     }
 
-    pub fn unify(&self, x: &Expr, y: &Expr) -> Option<State> {
+    pub fn unify(&self, x: &Rc<Expr>, y: &Rc<Expr>) -> Option<State> {
         let x = self.resolve(x);
         let y = self.resolve(y);
 
@@ -36,7 +37,7 @@ impl State {
             return Some(self.clone());
         }
 
-        match (&x, &y) {
+        match (&*x, &*y) {
             (Expr::Var(v), _) => Some(self.assign(v, &y)),
             (_, Expr::Var(v)) => Some(self.assign(v, &x)),
             (Expr::Seq(a), Expr::Seq(b)) => self.unify_seq(&a, &b),
@@ -56,9 +57,9 @@ impl State {
         })
     }
 
-    fn assign(&self, var: &Variable, expr: &Expr) -> State {
+    fn assign(&self, var: &Variable, expr: &Rc<Expr>) -> State {
         let mut values = self.values.clone();
-        values.insert(var.clone(), expr.clone());
+        values.insert(Rc::new(var.clone()), Rc::clone(expr));
         State { values }
     }
 }

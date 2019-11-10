@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Var(Variable),
@@ -12,4 +14,4 @@ pub struct Variable(pub String);
 pub struct Word(pub String);
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Sequence(pub Vec<Expr>);
+pub struct Sequence(pub Vec<Rc<Expr>>);

@@ -8,13 +8,13 @@ macro_rules! var {
 #[macro_export]
 macro_rules! expr {
     (var($x:ident)) => {
-        Expr::Var(var!($x))
+        std::rc::Rc::new(Expr::Var(var!($x)))
     };
     (wrd($x:ident)) => {
-        Expr::Wrd(Word(String::from(stringify!($x))))
+        std::rc::Rc::new(Expr::Wrd(Word(String::from(stringify!($x)))))
     };
     (seq($( $n:ident $a:tt ),+)) => {
-        Expr::Seq(Sequence(vec![$( expr!($n $a) ),+]))
+        std::rc::Rc::new(Expr::Seq(Sequence(vec![$( expr!($n $a) ),+])))
     };
 }
 
