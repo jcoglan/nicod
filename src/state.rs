@@ -43,8 +43,12 @@ impl State {
         let x = self.resolve_var(x);
         let y = self.resolve_var(y);
 
-        if x == y {
-            return true;
+        match (&*x, &*y) {
+            (Expr::Var(a), Expr::Var(b)) if a == b => {
+                return true;
+            }
+            (Expr::Wrd(a), Expr::Wrd(b)) => return a == b,
+            _ => {}
         }
 
         match (&*x, &*y) {
@@ -56,7 +60,7 @@ impl State {
     }
 
     fn unify_seq(&mut self, a: &Sequence, b: &Sequence) -> bool {
-        if a.0.len() != b.0.len() {
+        if !a.type_eq(b) {
             return false;
         }
 

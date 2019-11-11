@@ -14,7 +14,7 @@ macro_rules! expr {
         std::rc::Rc::new(Expr::Wrd(Word(String::from(stringify!($x)))))
     };
     (seq($( $n:ident $a:tt ),+)) => {
-        std::rc::Rc::new(Expr::Seq(Sequence(vec![$( expr!($n $a) ),+])))
+        std::rc::Rc::new(Expr::Seq(Sequence::new(&[$( expr!($n $a) ),+])))
     };
 }
 
