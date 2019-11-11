@@ -89,3 +89,37 @@ fn nested_seqs_with_indirect_vars(bench: &mut Bencher) {
 
     bench.iter(|| State::new().unify(&expr_a, &expr_b));
 }
+
+#[bench]
+fn nested_seq_with_late_unequal_word(bench: &mut Bencher) {
+    let expr_a = expr!(seq(
+        seq(
+            wrd(a),
+            wrd(k),
+            wrd(b),
+            seq(
+                wrd(c),
+                wrd(k),
+                wrd(d),
+                seq(wrd(e), wrd(k), wrd(f), seq(wrd(g), wrd(k), wrd(h)))
+            )
+        ),
+        wrd(x)
+    ));
+    let expr_b = expr!(seq(
+        seq(
+            wrd(a),
+            wrd(k),
+            wrd(b),
+            seq(
+                wrd(c),
+                wrd(k),
+                wrd(d),
+                seq(wrd(e), wrd(k), wrd(f), seq(wrd(g), wrd(k), wrd(h)))
+            )
+        ),
+        wrd(y)
+    ));
+
+    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+}
