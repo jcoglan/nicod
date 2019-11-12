@@ -12,6 +12,10 @@ impl State {
         State::default()
     }
 
+    pub fn scope(&self) -> usize {
+        self.values.len() + 1
+    }
+
     pub fn resolve(&self, expr: &Rc<Expr>) -> Rc<Expr> {
         match &**expr {
             Expr::Var(var) => {
