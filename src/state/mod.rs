@@ -1,10 +1,12 @@
+mod tests;
+
 use crate::expr::*;
 use im::hashmap::HashMap;
 use std::rc::Rc;
 
 #[derive(Clone, Default)]
 pub struct State {
-    pub values: HashMap<Rc<Variable>, Rc<Expr>>,
+    values: HashMap<Rc<Variable>, Rc<Expr>>,
 }
 
 impl State {
