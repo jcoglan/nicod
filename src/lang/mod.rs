@@ -1,12 +1,10 @@
 mod tests;
 
 use crate::expr::*;
-use crate::iter::Interleave;
+use crate::iter::{BoxIter, Flatten, Interleave};
 use crate::state::State;
 use indexmap::map::IndexMap;
 use std::rc::Rc;
-
-type Stream<'a> = Box<dyn Iterator<Item = State> + 'a>;
 
 #[derive(Default)]
 pub struct RuleSet {
@@ -27,15 +25,15 @@ impl RuleSet {
         self.rules.insert(String::from(name), rule);
     }
 
-    pub fn derive<'a>(&'a self, target: &Rc<Expr>) -> Stream<'a> {
+    pub fn derive<'a>(&'a self, target: &Rc<Expr>) -> Interleave<'a, State> {
         self.derive_in_state(&State::new(), target)
     }
 
-    fn derive_in_state<'a>(&'a self, state: &State, target: &Rc<Expr>) -> Stream<'a> {
+    fn derive_in_state<'a>(&'a self, state: &State, target: &Rc<Expr>) -> Interleave<'a, State> {
         let rules = self.rules.values();
         let streams = rules.map(|rule| rule.match_target(self, state, target));
 
-        Box::new(Interleave::new(streams))
+        Interleave::new(streams)
     }
 }
 
@@ -50,7 +48,7 @@ impl Rule {
         rule_set: &'a RuleSet,
         state: &State,
         target: &Rc<Expr>,
-    ) -> Stream<'a> {
+    ) -> BoxIter<'a, State> {
         let scope = state.scope();
         let premises = self.premises.iter().map(|premise| in_scope(scope, premise));
         let conclusion = in_scope(scope, &self.conclusion);
@@ -58,7 +56,8 @@ impl Rule {
         let states = Box::new(state.unify(target, &conclusion).into_iter());
 
         premises.fold(states, |states, premise| {
-            Box::new(states.flat_map(move |state| rule_set.derive_in_state(&state, &premise)))
+            let streams = states.map(move |s| rule_set.derive_in_state(&s, &premise));
+            Box::new(Flatten::new(streams))
         })
     }
 }

@@ -201,3 +201,56 @@ fn inductive_type_check_with_two_premises() {
 
     assert_eq!(results, vec![expr!(wrd(List))]);
 }
+
+fn transitive_rules() -> RuleSet {
+    let mut rules = RuleSet::new();
+
+    //  $x <: $x
+
+    rules.insert("S-Refl", &expr!(seq(var(x), wrd(sub), var(x))), &[]);
+
+    //  $x <: $y        $y <: $z
+    //  ------------------------
+    //          $x <: $z
+
+    rules.insert(
+        "S-Trans",
+        &expr!(seq(var(x), wrd(sub), var(z))),
+        &[
+            expr!(seq(var(x), wrd(sub), var(y))),
+            expr!(seq(var(y), wrd(sub), var(z))),
+        ],
+    );
+
+    //  a <: b
+    //  b <: c
+    //  c <: d
+
+    rules.insert("S-AB", &expr!(seq(wrd(a), wrd(sub), wrd(b))), &[]);
+    rules.insert("S-BC", &expr!(seq(wrd(b), wrd(sub), wrd(c))), &[]);
+    rules.insert("S-CD", &expr!(seq(wrd(c), wrd(sub), wrd(d))), &[]);
+
+    rules
+}
+
+#[test]
+fn transitive_relation_with_infinite_derivations() {
+    // a <: $y
+
+    let query = expr!(seq(wrd(a), wrd(sub), var(y)));
+
+    let count = transitive_rules()
+        .derive(&query)
+        .take_while(|s| s.resolve(&expr!(var(y))) != expr!(wrd(d)))
+        .count();
+
+    assert_eq!(count, 173);
+
+    let results: Vec<_> = transitive_rules()
+        .derive(&query)
+        .map(|s| s.resolve(&expr!(var(y))))
+        .take(3)
+        .collect();
+
+    assert_eq!(results, vec![expr!(wrd(a)), expr!(wrd(a)), expr!(wrd(b))]);
+}
