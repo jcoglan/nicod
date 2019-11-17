@@ -1,7 +1,5 @@
 mod tests;
 
-use std::mem;
-
 pub type BoxIter<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
 pub struct Flatten<'a, T> {
@@ -18,12 +16,12 @@ impl<'a, T> Flatten<'a, T> {
             .into_iter()
             .map(|s| Box::new(s.into_iter()) as BoxIter<'a, T>);
 
-        let inner = Inner::Pending(Some(Box::new(iters)));
+        let inner = Inner::new(Box::new(iters));
         Flatten { inner }
     }
 }
 
-impl<'a, T: 'a> Iterator for Flatten<'a, T> {
+impl<T> Iterator for Flatten<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -31,38 +29,58 @@ impl<'a, T: 'a> Iterator for Flatten<'a, T> {
     }
 }
 
-enum Inner<'a, T> {
-    Pending(Option<BoxIter<'a, BoxIter<'a, T>>>),
-    Forced(Interleave<'a, T>),
+struct Inner<'a, T> {
+    thunk: Thunk<'a, Option<Interleave<'a, T>>>,
 }
 
-impl<'a, T: 'a> Inner<'a, T> {
-    fn force(&mut self) {
-        if let Inner::Pending(streams) = self {
-            if let Some(streams) = streams.take() {
-                self.expand_streams(streams);
-            }
-        }
-    }
+impl<'a, T> Inner<'_, T> {
+    fn new(mut streams: BoxIter<'a, BoxIter<'a, T>>) -> Inner<'a, T> {
+        let thunk = Thunk::new(|| {
+            streams.next().map(|head| {
+                let tail = Box::new(Inner::new(streams));
+                Interleave::new(vec![head, tail])
+            })
+        });
 
-    fn expand_streams(&mut self, mut streams: BoxIter<'a, BoxIter<'a, T>>) {
-        if let Some(head) = streams.next() {
-            let tail = Box::new(Inner::Pending(Some(streams)));
-            let merged = Interleave::new(vec![head, tail]);
-            mem::replace(self, Inner::Forced(merged));
-        }
+        Inner { thunk }
     }
 }
 
-impl<'a, T: 'a> Iterator for Inner<'a, T> {
+impl<T> Iterator for Inner<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.force();
+        match self.thunk.as_mut() {
+            Some(stream) => stream.next(),
+            _ => None,
+        }
+    }
+}
+
+enum Thunk<'a, T: 'a> {
+    Pending(Option<Box<dyn 'a + FnOnce() -> T>>),
+    Forced(T),
+}
+
+impl<'a, T> Thunk<'a, T> {
+    fn new<F>(gen: F) -> Thunk<'a, T>
+    where
+        F: 'a + FnOnce() -> T,
+    {
+        Thunk::Pending(Some(Box::new(gen)))
+    }
+}
+
+impl<T> AsMut<T> for Thunk<'_, T> {
+    fn as_mut(&mut self) -> &mut T {
+        if let Thunk::Pending(gen) = self {
+            let gen = gen.take().unwrap();
+            *self = Thunk::Forced(gen());
+        }
 
         match self {
-            Inner::Forced(stream) => stream.next(),
-            _ => None,
+            Thunk::Forced(ref mut value) => value,
+            _ => panic!(),
         }
     }
 }
