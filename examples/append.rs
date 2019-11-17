@@ -1,12 +1,13 @@
 use nicod::expr::*;
 use nicod::lang::*;
+use nicod::proof;
 use nicod::*;
 use std::rc::Rc;
 
 fn derive(rules: &RuleSet, query: Rc<Expr>) {
     println!("----[ {:?} ]----", query);
 
-    for (i, state) in rules.derive(&query).enumerate() {
+    for (i, (state, _)) in rules.derive(&query).enumerate() {
         println!("#{}: {:?}", i + 1, state.resolve(&query));
     }
     println!("");
@@ -59,20 +60,21 @@ fn main() {
     );
 
     // ? ++ ? = (a (b (c (d (e nil)))))
+    let query = expr!(seq(
+        var(x),
+        wrd(plus),
+        var(y),
+        wrd(eq),
+        seq(
+            wrd(a),
+            seq(wrd(b), seq(wrd(c), seq(wrd(d), seq(wrd(e), wrd(nil)))))
+        )
+    ));
 
-    derive(
-        &rules,
-        expr!(seq(
-            var(x),
-            wrd(plus),
-            var(y),
-            wrd(eq),
-            seq(
-                wrd(a),
-                seq(wrd(b), seq(wrd(c), seq(wrd(d), seq(wrd(e), wrd(nil)))))
-            )
-        )),
-    );
+    derive(&rules, query.clone());
+    for (_, proof) in rules.derive(&query) {
+        proof::display(&proof);
+    }
 
     //  nil : List
 
@@ -110,16 +112,18 @@ fn main() {
         )),
     );
 
-    derive(
-        &rules,
-        expr!(seq(
-            seq(
-                seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
-                wrd(plus),
-                seq(wrd(d), seq(wrd(e), wrd(nil)))
-            ),
-            wrd(is),
-            var(answer)
-        )),
-    );
+    let query = expr!(seq(
+        seq(
+            seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+            wrd(plus),
+            seq(wrd(d), seq(wrd(e), wrd(nil)))
+        ),
+        wrd(is),
+        var(answer)
+    ));
+
+    derive(&rules, query.clone());
+    for (_, proof) in rules.derive(&query) {
+        proof::display(&proof);
+    }
 }

@@ -45,7 +45,9 @@ fn subtype_search(bench: &mut Bencher, typ: std::rc::Rc<Expr>) {
     let target = expr!(var(t));
 
     bench.iter(|| {
-        rules.derive(&query).find(|s| s.resolve(&target) == typ);
+        rules
+            .derive(&query)
+            .find(|(s, _)| s.resolve(&target) == typ);
     });
 }
 

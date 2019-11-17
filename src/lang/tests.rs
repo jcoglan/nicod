@@ -53,7 +53,7 @@ fn derive_from_single_rule() {
 
     let results: Vec<_> = append_rules()
         .derive(&query)
-        .map(|s| s.resolve(&expr!(var(answer))))
+        .map(|(s, _)| s.resolve(&expr!(var(answer))))
         .collect();
 
     assert_eq!(results, vec![expr!(seq(wrd(a), wrd(nil)))]);
@@ -73,7 +73,7 @@ fn derive_from_recursive_rule() {
 
     let results: Vec<_> = append_rules()
         .derive(&query)
-        .map(|s| s.resolve(&expr!(var(answer))))
+        .map(|(s, _)| s.resolve(&expr!(var(answer))))
         .collect();
 
     assert_eq!(
@@ -99,7 +99,7 @@ fn derive_in_reverse() {
 
     let results: Vec<_> = append_rules()
         .derive(&query)
-        .map(|s| (s.resolve(&expr!(var(x))), s.resolve(&expr!(var(y)))))
+        .map(|(s, _)| (s.resolve(&expr!(var(x))), s.resolve(&expr!(var(y)))))
         .collect();
 
     assert_eq!(
@@ -174,7 +174,7 @@ fn inductive_type_check() {
 
     let results: Vec<_> = type_rules()
         .derive(&query)
-        .map(|s| s.resolve(&expr!(var(answer))))
+        .map(|(s, _)| s.resolve(&expr!(var(answer))))
         .collect();
 
     assert_eq!(results, vec![expr!(wrd(List))]);
@@ -196,7 +196,7 @@ fn inductive_type_check_with_two_premises() {
 
     let results: Vec<_> = type_rules()
         .derive(&query)
-        .map(|s| s.resolve(&expr!(var(answer))))
+        .map(|(s, _)| s.resolve(&expr!(var(answer))))
         .collect();
 
     assert_eq!(results, vec![expr!(wrd(List))]);
@@ -241,14 +241,14 @@ fn transitive_relation_with_infinite_derivations() {
 
     let count = transitive_rules()
         .derive(&query)
-        .take_while(|s| s.resolve(&expr!(var(y))) != expr!(wrd(d)))
+        .take_while(|(s, _)| s.resolve(&expr!(var(y))) != expr!(wrd(d)))
         .count();
 
     assert_eq!(count, 173);
 
     let results: Vec<_> = transitive_rules()
         .derive(&query)
-        .map(|s| s.resolve(&expr!(var(y))))
+        .map(|(s, _)| s.resolve(&expr!(var(y))))
         .take(3)
         .collect();
 
