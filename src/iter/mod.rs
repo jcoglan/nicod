@@ -18,10 +18,9 @@ impl<'a, T> Interleave<'a, T> {
             .map(|s| Box::new(s.into_iter()) as BoxIter<'a, T>)
             .collect();
 
-        Interleave {
-            cursor: iters.len() - 1,
-            iters,
-        }
+        let cursor = if iters.is_empty() { 0 } else { iters.len() - 1 };
+
+        Interleave { cursor, iters }
     }
 }
 
