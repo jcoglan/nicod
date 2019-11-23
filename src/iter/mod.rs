@@ -3,7 +3,7 @@ mod tests;
 pub type BoxIter<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
 
 pub struct Flatten<'a, T> {
-    inner: Inner<'a, T>,
+    thunk: Thunk<'a, Option<Interleave<'a, T>>>,
 }
 
 impl<'a, T> Flatten<'a, T> {
@@ -16,8 +16,18 @@ impl<'a, T> Flatten<'a, T> {
             .into_iter()
             .map(|s| Box::new(s.into_iter()) as BoxIter<'a, T>);
 
-        let inner = Inner::new(Box::new(iters));
-        Flatten { inner }
+        Flatten::inner(Box::new(iters))
+    }
+
+    fn inner(mut streams: BoxIter<'a, BoxIter<'a, T>>) -> Flatten<'a, T> {
+        let thunk = Thunk::new(|| {
+            streams.next().map(|head| {
+                let tail = Box::new(Flatten::inner(streams));
+                Interleave::new(vec![head, tail])
+            })
+        });
+
+        Flatten { thunk }
     }
 }
 
@@ -25,34 +35,10 @@ impl<T> Iterator for Flatten<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
-    }
-}
-
-struct Inner<'a, T> {
-    thunk: Thunk<'a, Option<Interleave<'a, T>>>,
-}
-
-impl<'a, T> Inner<'_, T> {
-    fn new(mut streams: BoxIter<'a, BoxIter<'a, T>>) -> Inner<'a, T> {
-        let thunk = Thunk::new(|| {
-            streams.next().map(|head| {
-                let tail = Box::new(Inner::new(streams));
-                Interleave::new(vec![head, tail])
-            })
-        });
-
-        Inner { thunk }
-    }
-}
-
-impl<T> Iterator for Inner<'_, T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.thunk.as_mut() {
-            Some(stream) => stream.next(),
-            _ => None,
+        if let Some(stream) = self.thunk.as_mut() {
+            stream.next()
+        } else {
+            None
         }
     }
 }
