@@ -1,6 +1,5 @@
 use nicod::expr::*;
 use nicod::lang::*;
-use nicod::proof;
 use nicod::*;
 use std::rc::Rc;
 
@@ -73,7 +72,46 @@ fn main() {
 
     derive(&rules, query.clone());
     for (_, proof) in rules.derive(&query) {
-        proof::display(&proof);
+        println!("{}", proof);
+    }
+
+    //  rev nil = nil
+
+    rules.insert(
+        "rev-0",
+        &expr!(seq(wrd(rev), wrd(nil), wrd(eq), wrd(nil))),
+        &[],
+    );
+
+    //  rev $tail = $rest       $rest ++ ($head nil) = $rev
+    //  ---------------------------------------------------
+    //              rev ($head $tail) = $rev
+
+    rules.insert(
+        "rev-N",
+        &expr!(seq(wrd(rev), seq(var(head), var(tail)), wrd(eq), var(rev))),
+        &[
+            expr!(seq(wrd(rev), var(tail), wrd(eq), var(rest))),
+            expr!(seq(
+                var(rest),
+                wrd(plus),
+                seq(var(head), wrd(nil)),
+                wrd(eq),
+                var(rev)
+            )),
+        ],
+    );
+
+    let query = expr!(seq(
+        wrd(rev),
+        seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+        wrd(eq),
+        var(answer)
+    ));
+
+    derive(&rules, query.clone());
+    for (_, proof) in rules.derive(&query) {
+        println!("{}", proof);
     }
 
     //  nil : List
@@ -124,6 +162,25 @@ fn main() {
 
     derive(&rules, query.clone());
     for (_, proof) in rules.derive(&query) {
-        proof::display(&proof);
+        println!("{}", proof);
+    }
+
+    let query = expr!(seq(
+        seq(
+            seq(
+                seq(wrd(a), wrd(nil)),
+                wrd(plus),
+                seq(seq(wrd(b), wrd(nil)), wrd(plus), seq(wrd(d), wrd(nil)))
+            ),
+            wrd(plus),
+            seq(wrd(c), wrd(nil))
+        ),
+        wrd(is),
+        var(answer)
+    ));
+
+    derive(&rules, query.clone());
+    for (_, proof) in rules.derive(&query) {
+        println!("{}", proof);
     }
 }
