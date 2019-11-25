@@ -204,3 +204,66 @@ fn unify_nested_sequences_with_repeated_variables() {
 
     assert_eq!(state.resolve(&expr!(var(x))), expr!(wrd(k)));
 }
+
+#[test]
+fn unify_empty_lists() {
+    let state = unify!(lst(a, []), lst(a, []));
+    assert!(state.is_some());
+}
+
+#[test]
+fn reject_lists_with_different_tags() {
+    let state = unify!(lst(a, []), lst(b, []));
+    assert!(state.is_none());
+}
+
+#[test]
+fn unify_lists_with_equal_elements() {
+    let state = unify!(lst([wrd(a), wrd(b),]), lst([wrd(a), wrd(b),]));
+    assert!(state.is_some());
+}
+
+#[test]
+fn unify_lists_with_variables() {
+    let state = unify!(lst([var(x), wrd(b),]), lst([wrd(a), var(y),])).unwrap();
+    assert_eq!(state.resolve(&expr!(var(x))), expr!(wrd(a)));
+    assert_eq!(state.resolve(&expr!(var(y))), expr!(wrd(b)));
+}
+
+#[test]
+fn reject_shorter_lists() {
+    let state = unify!(lst([wrd(a), wrd(b),]), lst([wrd(a),]));
+    assert!(state.is_none());
+}
+
+#[test]
+fn reject_longer_lists() {
+    let state = unify!(lst([wrd(a),]), lst([wrd(a), wrd(b),]));
+    assert!(state.is_none());
+}
+
+#[test]
+fn reject_empty_and_nonempty_lists() {
+    let state = unify!(lst([]), lst([wrd(a),]));
+    assert!(state.is_none());
+}
+
+#[test]
+fn reject_nonempty_and_empty_lists() {
+    let state = unify!(lst([wrd(a),]), lst([]));
+    assert!(state.is_none());
+}
+
+#[test]
+fn unify_list_with_tail_variable() {
+    let state = unify!(
+        lst(k, [wrd(a), wrd(b) | var(x)]),
+        lst(k, [wrd(a), wrd(b), wrd(c), wrd(d),])
+    )
+    .unwrap();
+
+    assert_eq!(
+        state.resolve(&expr!(var(x))),
+        expr!(lst(k, [wrd(c), wrd(d),]))
+    );
+}

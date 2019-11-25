@@ -31,6 +31,16 @@ impl State {
                 let items = seq.0.iter().map(|item| self.resolve(item));
                 Rc::new(Expr::Seq(Sequence(items.collect())))
             }
+            Expr::Lst(lst) => {
+                let pair = lst.pair.as_ref().map(|Pair { head, tail }| Pair {
+                    head: self.resolve(&head),
+                    tail: self.resolve(&tail),
+                });
+                Rc::new(Expr::Lst(List {
+                    tag: lst.tag.clone(),
+                    pair,
+                }))
+            }
             _ => Rc::clone(expr),
         }
     }
@@ -56,19 +66,34 @@ impl State {
         match (&*x, &*y) {
             (Expr::Var(v), _) => self.assign(v, &y),
             (_, Expr::Var(v)) => self.assign(v, &x),
-            (Expr::Seq(a), Expr::Seq(b)) => self.unify_seq(&a, &b),
+            (Expr::Seq(a), Expr::Seq(b)) => self.unify_sequence(&a, &b),
+            (Expr::Lst(a), Expr::Lst(b)) => self.unify_list(&a, &b),
             _ => false,
         }
     }
 
-    fn unify_seq(&mut self, a: &Sequence, b: &Sequence) -> bool {
+    fn unify_sequence(&mut self, a: &Sequence, b: &Sequence) -> bool {
         if a.0.len() != b.0.len() {
             return false;
         }
 
         let zip = a.0.iter().zip(&b.0);
-
         zip.fold(true, |state, (x, y)| state && self.unify_mut(x, y))
+    }
+
+    fn unify_list(&mut self, a: &List, b: &List) -> bool {
+        if a.tag != b.tag {
+            return false;
+        }
+
+        match (&a.pair, &b.pair) {
+            (Some(a_pair), Some(b_pair)) => {
+                self.unify_mut(&a_pair.head, &b_pair.head)
+                    && self.unify_mut(&a_pair.tail, &b_pair.tail)
+            }
+            (None, None) => true,
+            _ => false,
+        }
     }
 
     fn assign(&mut self, var: &Variable, expr: &Rc<Expr>) -> bool {

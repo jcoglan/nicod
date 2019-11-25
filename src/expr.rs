@@ -6,6 +6,7 @@ pub enum Expr {
     Var(Variable),
     Wrd(Word),
     Seq(Sequence),
+    Lst(List),
 }
 
 impl Expr {
@@ -13,6 +14,7 @@ impl Expr {
         match &**expr {
             Expr::Var(var) => Rc::new(Expr::Var(var.in_scope(scope))),
             Expr::Seq(seq) => Rc::new(Expr::Seq(seq.in_scope(scope))),
+            Expr::Lst(lst) => Rc::new(Expr::Lst(lst.in_scope(scope))),
             _ => Rc::clone(expr),
         }
     }
@@ -31,6 +33,7 @@ impl fmt::Debug for Expr {
             Expr::Var(var) => var.fmt(f),
             Expr::Wrd(wrd) => wrd.fmt(f),
             Expr::Seq(seq) => seq.fmt(f),
+            Expr::Lst(lst) => lst.fmt(f),
         }
     }
 }
@@ -101,5 +104,35 @@ impl fmt::Debug for Sequence {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Pair {
+    pub head: Rc<Expr>,
+    pub tail: Rc<Expr>,
+}
+
+impl Pair {
+    pub fn in_scope(&self, scope: usize) -> Pair {
+        Pair {
+            head: Expr::in_scope(&self.head, scope),
+            tail: Expr::in_scope(&self.tail, scope),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct List {
+    pub tag: String,
+    pub pair: Option<Pair>,
+}
+
+impl List {
+    pub fn in_scope(&self, scope: usize) -> List {
+        List {
+            tag: self.tag.clone(),
+            pair: self.pair.as_ref().map(|p| p.in_scope(scope)),
+        }
     }
 }
