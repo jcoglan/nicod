@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! var {
     ($n:ident) => {
-        Variable(String::from(stringify!($n)))
+        Variable::new(stringify!($n))
     };
 }
 

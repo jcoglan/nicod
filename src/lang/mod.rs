@@ -56,11 +56,15 @@ impl Rule {
         target: &Rc<Expr>,
     ) -> Stream<'a, Rc<Proof>> {
         let scope = state.scope();
-        let premises = self.premises.iter().map(|premise| in_scope(scope, premise));
-        let conclusion = in_scope(scope, &self.conclusion);
+        let conclusion = Expr::in_scope(&self.conclusion, scope);
 
         let state_or_none = state.unify(target, &conclusion).into_iter();
         let init = Box::new(state_or_none.map(|state| (state, Vector::new())));
+
+        let premises = self
+            .premises
+            .iter()
+            .map(|premise| Expr::in_scope(premise, scope));
 
         let states: Stream<Vector<_>> = premises.fold(init, |states, premise| {
             let streams = states.map(move |(state, proofs)| {
@@ -75,20 +79,6 @@ impl Rule {
             let proof = Proof::new(&self.name, &state, proofs, &conclusion);
             (state, Rc::new(proof))
         }))
-    }
-}
-
-fn in_scope(scope: usize, expr: &Rc<Expr>) -> Rc<Expr> {
-    match &**expr {
-        Expr::Var(var) => {
-            let name = format!("{}/{}", var.0, scope);
-            Rc::new(Expr::Var(Variable(name)))
-        }
-        Expr::Seq(seq) => {
-            let items = seq.0.iter().map(|item| in_scope(scope, item));
-            Rc::new(Expr::Seq(Sequence(items.collect())))
-        }
-        _ => Rc::clone(expr),
     }
 }
 
