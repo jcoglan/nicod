@@ -137,15 +137,15 @@ fn sequence_append_fail_1_000(bench: &mut Bencher) {
 }
 
 fn gen_list(n: usize, tag: &str) -> Rc<Expr> {
-    let tag = String::from(tag);
+    let tag = Rc::new(String::from(tag));
 
     let mut tail = Rc::new(Expr::Lst(List {
-        tag: tag.clone(),
+        tag: Rc::clone(&tag),
         pair: None,
     }));
 
     for i in (0..n).rev() {
-        let tag = tag.clone();
+        let tag = Rc::clone(&tag);
         let head = word(i);
         let pair = Some(Pair { head, tail });
 

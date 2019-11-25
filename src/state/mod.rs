@@ -37,7 +37,7 @@ impl State {
                     tail: self.resolve(&tail),
                 });
                 Rc::new(Expr::Lst(List {
-                    tag: lst.tag.clone(),
+                    tag: Rc::clone(&lst.tag),
                     pair,
                 }))
             }

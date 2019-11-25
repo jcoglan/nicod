@@ -24,7 +24,7 @@ macro_rules! expr {
     };
     (lst($tag:ident, $items:tt)) => {
         expr!(@wrap Lst List {
-            tag: String::from(stringify!($tag)),
+            tag: Rc::new(String::from(stringify!($tag))),
             pair: expr!(@list_items $tag $items),
         })
     };

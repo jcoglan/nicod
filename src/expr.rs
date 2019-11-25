@@ -28,7 +28,7 @@ impl Expr {
 
     fn list_tail(&self, f: &mut fmt::Formatter, tag: &str) -> fmt::Result {
         match self {
-            Expr::Lst(lst) if tag == lst.tag => lst.list_head(f, false),
+            Expr::Lst(lst) if tag == *lst.tag => lst.list_head(f, false),
             _ => {
                 write!(f, " | ")?;
                 fmt::Debug::fmt(self, f)
@@ -134,14 +134,14 @@ impl Pair {
 
 #[derive(Clone, PartialEq)]
 pub struct List {
-    pub tag: String,
+    pub tag: Rc<String>,
     pub pair: Option<Pair>,
 }
 
 impl List {
     pub fn in_scope(&self, scope: usize) -> List {
         List {
-            tag: self.tag.clone(),
+            tag: Rc::clone(&self.tag),
             pair: self.pair.as_ref().map(|p| p.in_scope(scope)),
         }
     }
