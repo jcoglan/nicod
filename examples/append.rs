@@ -15,26 +15,26 @@ fn derive(rules: &RuleSet, query: Rc<Expr>) {
 fn main() {
     let mut rules = RuleSet::new();
 
-    //  nil ++ $list = $list
+    //  [] ++ $list = $list
 
     rules.insert(
         "append-0",
-        &expr!(seq(wrd(nil), wrd(plus), var(list), wrd(eq), var(list))),
+        &expr!(seq(lst(λ, []), wrd(plus), var(list), wrd(eq), var(list))),
         &[],
     );
 
-    //          $tail ++ $list = $rest
-    //  --------------------------------------
-    //  ($head $tail) ++ $list = ($head $rest)
+    //            $tail ++ $list = $rest
+    //  ------------------------------------------
+    //  [$head | $tail] ++ $list = [$head | $rest]
 
     rules.insert(
         "append-N",
         &expr!(seq(
-            seq(var(head), var(tail)),
+            lst(λ, [var(head) | var(tail)]),
             wrd(plus),
             var(list),
             wrd(eq),
-            seq(var(head), var(rest))
+            lst(λ, [var(head) | var(rest)])
         )),
         &[expr!(seq(
             var(tail),
@@ -45,66 +45,69 @@ fn main() {
         ))],
     );
 
-    // (a (b (c nil))) ++ (d (e nil)) = ?
+    // [a, b, c] ++ [d, e] = ?
 
     derive(
         &rules,
         expr!(seq(
-            seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+            lst(λ, [wrd(a), wrd(b), wrd(c),]),
             wrd(plus),
-            seq(wrd(d), seq(wrd(e), wrd(nil))),
+            lst(λ, [wrd(d), wrd(e),]),
             wrd(eq),
             var(answer)
         )),
     );
 
-    // ? ++ ? = (a (b (c (d (e nil)))))
-    let query = expr!(seq(
-        var(x),
-        wrd(plus),
-        var(y),
-        wrd(eq),
-        seq(
-            wrd(a),
-            seq(wrd(b), seq(wrd(c), seq(wrd(d), seq(wrd(e), wrd(nil)))))
-        )
-    ));
+    // ? ++ ? = [a, b, c, d, e]
 
-    derive(&rules, query.clone());
-    for (_, proof) in rules.derive(&query) {
-        println!("{}", proof);
-    }
+    derive(
+        &rules,
+        expr!(seq(
+            var(x),
+            wrd(plus),
+            var(y),
+            wrd(eq),
+            lst(λ, [wrd(a), wrd(b), wrd(c), wrd(d), wrd(e),])
+        )),
+    );
 
-    //  rev nil = nil
+    //  rev [] = []
 
     rules.insert(
         "rev-0",
-        &expr!(seq(wrd(rev), wrd(nil), wrd(eq), wrd(nil))),
+        &expr!(seq(wrd(rev), lst(λ, []), wrd(eq), lst(λ, []))),
         &[],
     );
 
-    //  rev $tail = $rest       $rest ++ ($head nil) = $rev
-    //  ---------------------------------------------------
-    //              rev ($head $tail) = $rev
+    //  rev $tail = $rest       $rest ++ [$head] = $rev
+    //  -----------------------------------------------
+    //            rev [$head | $tail] = $rev
 
     rules.insert(
         "rev-N",
-        &expr!(seq(wrd(rev), seq(var(head), var(tail)), wrd(eq), var(rev))),
+        &expr!(seq(
+            wrd(rev),
+            lst(λ, [var(head) | var(tail)]),
+            wrd(eq),
+            var(rev)
+        )),
         &[
             expr!(seq(wrd(rev), var(tail), wrd(eq), var(rest))),
             expr!(seq(
                 var(rest),
                 wrd(plus),
-                seq(var(head), wrd(nil)),
+                lst(λ, [var(head),]),
                 wrd(eq),
                 var(rev)
             )),
         ],
     );
 
+    // rev [a, b, c] = ?
+
     let query = expr!(seq(
         wrd(rev),
-        seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+        lst(λ, [wrd(a), wrd(b), wrd(c),]),
         wrd(eq),
         var(answer)
     ));
@@ -114,17 +117,17 @@ fn main() {
         println!("{}", proof);
     }
 
-    //  nil : List
+    //  [] : List
 
-    rules.insert("type-0", &expr!(seq(wrd(nil), wrd(is), wrd(List))), &[]);
+    rules.insert("type-0", &expr!(seq(lst(λ, []), wrd(is), wrd(List))), &[]);
 
-    //      $tail : List
-    //  --------------------
-    //  ($head $tail) : List
+    //       $tail : List
+    //  ----------------------
+    //  [$head | $tail] : List
 
     rules.insert(
         "type-N",
-        &expr!(seq(seq(var(head), var(tail)), wrd(is), wrd(List))),
+        &expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(is), wrd(List))),
         &[expr!(seq(var(tail), wrd(is), wrd(List)))],
     );
 
@@ -141,20 +144,20 @@ fn main() {
         ],
     );
 
+    // [a, b, c] : ?
+
     derive(
         &rules,
-        expr!(seq(
-            seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
-            wrd(is),
-            var(answer)
-        )),
+        expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(is), var(answer))),
     );
+
+    // ([a, b, c] ++ [d, e]) : ?
 
     let query = expr!(seq(
         seq(
-            seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+            lst(λ, [wrd(a), wrd(b), wrd(c),]),
             wrd(plus),
-            seq(wrd(d), seq(wrd(e), wrd(nil)))
+            lst(λ, [wrd(d), wrd(e),])
         ),
         wrd(is),
         var(answer)
@@ -165,15 +168,17 @@ fn main() {
         println!("{}", proof);
     }
 
+    // (([a] ++ ([b] ++ [c])) ++ [d]) : ?
+
     let query = expr!(seq(
         seq(
             seq(
-                seq(wrd(a), wrd(nil)),
+                lst(λ, [wrd(a),]),
                 wrd(plus),
-                seq(seq(wrd(b), wrd(nil)), wrd(plus), seq(wrd(d), wrd(nil)))
+                seq(lst(λ, [wrd(b),]), wrd(plus), lst(λ, [wrd(c),]))
             ),
             wrd(plus),
-            seq(wrd(c), wrd(nil))
+            lst(λ, [wrd(d),])
         ),
         wrd(is),
         var(answer)

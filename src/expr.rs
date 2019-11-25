@@ -25,6 +25,16 @@ impl Expr {
             _ => fmt::Debug::fmt(self, f),
         }
     }
+
+    fn list_tail(&self, f: &mut fmt::Formatter, tag: &str) -> fmt::Result {
+        match self {
+            Expr::Lst(lst) if tag == lst.tag => lst.list_head(f, false),
+            _ => {
+                write!(f, " | ")?;
+                fmt::Debug::fmt(self, f)
+            }
+        }
+    }
 }
 
 impl fmt::Debug for Expr {
@@ -107,7 +117,7 @@ impl fmt::Debug for Sequence {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Pair {
     pub head: Rc<Expr>,
     pub tail: Rc<Expr>,
@@ -122,7 +132,7 @@ impl Pair {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct List {
     pub tag: String,
     pub pair: Option<Pair>,
@@ -134,5 +144,24 @@ impl List {
             tag: self.tag.clone(),
             pair: self.pair.as_ref().map(|p| p.in_scope(scope)),
         }
+    }
+
+    fn list_head(&self, f: &mut fmt::Formatter, is_first: bool) -> fmt::Result {
+        if let Some(Pair { head, tail }) = &self.pair {
+            if !is_first {
+                write!(f, ", ")?;
+            }
+            fmt::Debug::fmt(head, f)?;
+            tail.list_tail(f, &self.tag)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for List {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}[", self.tag)?;
+        self.list_head(f, true)?;
+        write!(f, "]")
     }
 }
