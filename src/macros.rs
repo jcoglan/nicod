@@ -7,23 +7,26 @@ macro_rules! var {
 
 #[macro_export]
 macro_rules! expr {
+    (@wrap $t:ident $( $e:tt )*) => {
+        std::rc::Rc::new(Expr::$t($( $e )*))
+    };
     (var($x:ident)) => {
-        std::rc::Rc::new(Expr::Var(var!($x)))
+        expr!(@wrap Var var!($x))
     };
     (wrd($x:ident)) => {
-        std::rc::Rc::new(Expr::Wrd(Word(String::from(stringify!($x)))))
+        expr!(@wrap Wrd Word(String::from(stringify!($x))))
     };
     (seq($( $n:ident $a:tt ),+)) => {
-        std::rc::Rc::new(Expr::Seq(Sequence(vec![$( expr!($n $a) ),+])))
+        expr!(@wrap Seq Sequence(vec![$( expr!($n $a) ),+]))
     };
     (lst([$( $elem:tt )*])) => {
         expr!(lst(__tag, [$( $elem )*]))
     };
     (lst($tag:ident, $items:tt)) => {
-        std::rc::Rc::new(Expr::Lst(List {
+        expr!(@wrap Lst List {
             tag: String::from(stringify!($tag)),
             pair: expr!(@list_items $tag $items),
-        }))
+        })
     };
     (@list_items $tag:ident []) => {
         None
