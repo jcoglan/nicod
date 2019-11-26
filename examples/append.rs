@@ -4,10 +4,10 @@ use nicod::*;
 use std::rc::Rc;
 
 fn derive(rules: &RuleSet, query: Rc<Expr>) {
-    println!("----[ {:?} ]----", query);
+    println!("----[ {} ]----", query);
 
     for (i, (state, _)) in rules.derive(&query).enumerate() {
-        println!("#{}: {:?}", i + 1, state.resolve(&query));
+        println!("#{}: {}", i + 1, state.resolve(&query));
     }
     println!("");
 }

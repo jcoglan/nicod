@@ -40,7 +40,7 @@ impl fmt::Debug for Proof {
 
 fn display_nested(proof: &Proof, f: &mut fmt::Formatter, level: usize) -> fmt::Result {
     let indent = " ".repeat(4 * level);
-    writeln!(f, "{}[{}] {:?}", indent, proof.rule, proof.conclusion())?;
+    writeln!(f, "{}[{}] {}", indent, proof.rule, proof.conclusion())?;
     for parent in proof.parents.iter() {
         display_nested(parent, f, level + 1)?;
     }
@@ -88,7 +88,7 @@ impl Layout<'_> {
     }
 
     fn conclusion(&self) -> String {
-        format!("{:?}", self.proof.conclusion())
+        format!("{}", self.proof.conclusion())
     }
 
     fn prepare(&mut self, offset: usize) {

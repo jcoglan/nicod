@@ -1,7 +1,7 @@
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Var(Variable),
     Wrd(Word),
@@ -20,7 +20,7 @@ impl Expr {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Variable {
     name: Rc<String>,
     scope: usize,
@@ -42,10 +42,10 @@ impl Variable {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Word(pub String);
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Sequence(pub Vec<Rc<Expr>>);
 
 impl Sequence {
@@ -55,7 +55,7 @@ impl Sequence {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct List {
     pub tag: Rc<String>,
     pub pair: Option<Pair>,
@@ -70,7 +70,7 @@ impl List {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Pair {
     pub head: Rc<Expr>,
     pub tail: Rc<Expr>,
@@ -85,7 +85,7 @@ impl Pair {
     }
 }
 
-impl fmt::Debug for Expr {
+impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expr::Var(var) => var.fmt(f),
@@ -100,7 +100,7 @@ impl Expr {
     fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expr::Seq(seq) => seq.with_parens(f),
-            _ => fmt::Debug::fmt(self, f),
+            _ => fmt::Display::fmt(self, f),
         }
     }
 
@@ -109,13 +109,13 @@ impl Expr {
             Expr::Lst(lst) if tag == *lst.tag => lst.list_head(f, false),
             _ => {
                 write!(f, " | ")?;
-                fmt::Debug::fmt(self, f)
+                fmt::Display::fmt(self, f)
             }
         }
     }
 }
 
-impl fmt::Debug for Sequence {
+impl fmt::Display for Sequence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (i, expr) in self.0.iter().enumerate() {
             expr.with_parens(f)?;
@@ -130,12 +130,12 @@ impl fmt::Debug for Sequence {
 impl Sequence {
     fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "(")?;
-        fmt::Debug::fmt(self, f)?;
+        fmt::Display::fmt(self, f)?;
         write!(f, ")")
     }
 }
 
-impl fmt::Debug for List {
+impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}[", self.tag)?;
         self.list_head(f, true)?;
@@ -149,14 +149,14 @@ impl List {
             if !is_first {
                 write!(f, ", ")?;
             }
-            fmt::Debug::fmt(head, f)?;
+            fmt::Display::fmt(head, f)?;
             tail.list_tail(f, &self.tag)?;
         }
         Ok(())
     }
 }
 
-impl fmt::Debug for Variable {
+impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "${}", self.name)?;
         if self.scope > 0 {
@@ -166,7 +166,7 @@ impl fmt::Debug for Variable {
     }
 }
 
-impl fmt::Debug for Word {
+impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
