@@ -59,11 +59,9 @@ impl State {
         let x = self.resolve_var(x);
         let y = self.resolve_var(y);
 
-        if x == y {
-            return true;
-        }
-
         match (&*x, &*y) {
+            (Expr::Wrd(a), Expr::Wrd(b)) => a == b,
+            (Expr::Var(a), Expr::Var(b)) if a == b => true,
             (Expr::Var(v), _) => self.assign(v, &y),
             (_, Expr::Var(v)) => self.assign(v, &x),
             (Expr::Seq(a), Expr::Seq(b)) => self.unify_sequence(&a, &b),
