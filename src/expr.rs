@@ -1,6 +1,8 @@
 use std::fmt;
 use std::rc::Rc;
 
+pub type Node = Rc<Expr>;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Var(Variable),
@@ -9,8 +11,41 @@ pub enum Expr {
     Lst(List),
 }
 
+pub fn var(name: &str) -> Node {
+    wrap(Expr::Var(Variable {
+        name: Rc::new(name.to_string()),
+        scope: 0,
+    }))
+}
+
+pub fn word(name: &str) -> Node {
+    wrap(Expr::Wrd(Word(name.to_string())))
+}
+
+pub fn seq(items: &[Node]) -> Node {
+    wrap(Expr::Seq(Sequence(items.to_vec())))
+}
+
+pub fn null(tag: &str) -> Node {
+    wrap(Expr::Lst(List {
+        tag: Rc::new(tag.to_string()),
+        pair: None,
+    }))
+}
+
+pub fn pair(tag: &str, head: Node, tail: Node) -> Node {
+    wrap(Expr::Lst(List {
+        tag: Rc::new(tag.to_string()),
+        pair: Some(Pair { head, tail }),
+    }))
+}
+
+fn wrap(expr: Expr) -> Node {
+    Rc::new(expr)
+}
+
 impl Expr {
-    pub fn in_scope(expr: &Rc<Expr>, scope: usize) -> Rc<Expr> {
+    pub fn in_scope(expr: &Node, scope: usize) -> Node {
         match &**expr {
             Expr::Var(var) => Rc::new(Expr::Var(var.in_scope(scope))),
             Expr::Seq(seq) => Rc::new(Expr::Seq(seq.in_scope(scope))),
@@ -46,7 +81,7 @@ impl Variable {
 pub struct Word(pub String);
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Sequence(pub Vec<Rc<Expr>>);
+pub struct Sequence(pub Vec<Node>);
 
 impl Sequence {
     fn in_scope(&self, scope: usize) -> Sequence {
@@ -72,8 +107,8 @@ impl List {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pair {
-    pub head: Rc<Expr>,
-    pub tail: Rc<Expr>,
+    pub head: Node,
+    pub tail: Node,
 }
 
 impl Pair {

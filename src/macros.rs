@@ -7,41 +7,29 @@ macro_rules! var {
 
 #[macro_export]
 macro_rules! expr {
-    (@wrap $t:ident $( $e:tt )*) => {
-        std::rc::Rc::new(Expr::$t($( $e )*))
+    (var($name:ident)) => {
+        expr::var(stringify!($name))
     };
-    (var($x:ident)) => {
-        expr!(@wrap Var var!($x))
-    };
-    (wrd($x:ident)) => {
-        expr!(@wrap Wrd Word(String::from(stringify!($x))))
+    (wrd($name:ident)) => {
+        expr::word(stringify!($name))
     };
     (seq($( $n:ident $a:tt ),+)) => {
-        expr!(@wrap Seq Sequence(vec![$( expr!($n $a) ),+]))
+        expr::seq(&[$( expr!($n $a) ),+])
     };
     (lst([$( $elem:tt )*])) => {
         expr!(lst(__tag, [$( $elem )*]))
     };
-    (lst($tag:ident, $items:tt)) => {
-        expr!(@wrap Lst List {
-            tag: Rc::new(String::from(stringify!($tag))),
-            pair: expr!(@list_items $tag $items),
-        })
+    (lst($tag:ident, [])) => {
+        expr::null(stringify!($tag))
     };
-    (@list_items $tag:ident []) => {
-        None
+    (lst($tag:ident, [$n:ident $a:tt , $( $rest:tt )*])) => {
+        expr!(@list $tag $n $a expr!(lst($tag, [$( $rest )*])))
     };
-    (@list_items $tag:ident [$n:ident $a:tt $( $rest:tt )*]) => {
-        Some(Pair {
-            head: expr!($n $a),
-            tail: expr!(@list_tail $tag $( $rest )*),
-        })
+    (lst($tag:ident, [$n:ident $a:tt | $( $rest:tt )*])) => {
+        expr!(@list $tag $n $a expr!($( $rest )*))
     };
-    (@list_tail $tag:ident , $( $rest:tt )*) => {
-        expr!(lst($tag, [$( $rest )*]))
-    };
-    (@list_tail $tag:ident | $( $rest:tt )*) => {
-        expr!($( $rest )*)
+    (@list $tag:ident $n:ident $a:tt $( $e:tt )*) => {
+        expr::pair(stringify!($tag), expr!($n $a), $( $e )*)
     };
 }
 
