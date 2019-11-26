@@ -18,34 +18,6 @@ impl Expr {
             _ => Rc::clone(expr),
         }
     }
-
-    fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Expr::Seq(seq) => seq.with_parens(f),
-            _ => fmt::Debug::fmt(self, f),
-        }
-    }
-
-    fn list_tail(&self, f: &mut fmt::Formatter, tag: &str) -> fmt::Result {
-        match self {
-            Expr::Lst(lst) if tag == *lst.tag => lst.list_head(f, false),
-            _ => {
-                write!(f, " | ")?;
-                fmt::Debug::fmt(self, f)
-            }
-        }
-    }
-}
-
-impl fmt::Debug for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Expr::Var(var) => var.fmt(f),
-            Expr::Wrd(wrd) => wrd.fmt(f),
-            Expr::Seq(seq) => seq.fmt(f),
-            Expr::Lst(lst) => lst.fmt(f),
-        }
-    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -70,24 +42,8 @@ impl Variable {
     }
 }
 
-impl fmt::Debug for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "${}", self.name)?;
-        if self.scope > 0 {
-            write!(f, "/{}", self.scope)?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Clone, PartialEq)]
 pub struct Word(pub String);
-
-impl fmt::Debug for Word {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 #[derive(Clone, PartialEq)]
 pub struct Sequence(pub Vec<Rc<Expr>>);
@@ -97,23 +53,20 @@ impl Sequence {
         let items = self.0.iter().map(|item| Expr::in_scope(item, scope));
         Sequence(items.collect())
     }
-
-    fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "(")?;
-        fmt::Debug::fmt(self, f)?;
-        write!(f, ")")
-    }
 }
 
-impl fmt::Debug for Sequence {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (i, expr) in self.0.iter().enumerate() {
-            expr.with_parens(f)?;
-            if i < self.0.len() - 1 {
-                write!(f, " ")?;
-            }
+#[derive(Clone, PartialEq)]
+pub struct List {
+    pub tag: Rc<String>,
+    pub pair: Option<Pair>,
+}
+
+impl List {
+    pub fn in_scope(&self, scope: usize) -> List {
+        List {
+            tag: Rc::clone(&self.tag),
+            pair: self.pair.as_ref().map(|p| p.in_scope(scope)),
         }
-        Ok(())
     }
 }
 
@@ -132,20 +85,65 @@ impl Pair {
     }
 }
 
-#[derive(Clone, PartialEq)]
-pub struct List {
-    pub tag: Rc<String>,
-    pub pair: Option<Pair>,
+impl fmt::Debug for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Expr::Var(var) => var.fmt(f),
+            Expr::Wrd(wrd) => wrd.fmt(f),
+            Expr::Seq(seq) => seq.fmt(f),
+            Expr::Lst(lst) => lst.fmt(f),
+        }
+    }
 }
 
-impl List {
-    pub fn in_scope(&self, scope: usize) -> List {
-        List {
-            tag: Rc::clone(&self.tag),
-            pair: self.pair.as_ref().map(|p| p.in_scope(scope)),
+impl Expr {
+    fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Expr::Seq(seq) => seq.with_parens(f),
+            _ => fmt::Debug::fmt(self, f),
         }
     }
 
+    fn list_tail(&self, f: &mut fmt::Formatter, tag: &str) -> fmt::Result {
+        match self {
+            Expr::Lst(lst) if tag == *lst.tag => lst.list_head(f, false),
+            _ => {
+                write!(f, " | ")?;
+                fmt::Debug::fmt(self, f)
+            }
+        }
+    }
+}
+
+impl fmt::Debug for Sequence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (i, expr) in self.0.iter().enumerate() {
+            expr.with_parens(f)?;
+            if i < self.0.len() - 1 {
+                write!(f, " ")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Sequence {
+    fn with_parens(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(")?;
+        fmt::Debug::fmt(self, f)?;
+        write!(f, ")")
+    }
+}
+
+impl fmt::Debug for List {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}[", self.tag)?;
+        self.list_head(f, true)?;
+        write!(f, "]")
+    }
+}
+
+impl List {
     fn list_head(&self, f: &mut fmt::Formatter, is_first: bool) -> fmt::Result {
         if let Some(Pair { head, tail }) = &self.pair {
             if !is_first {
@@ -158,10 +156,18 @@ impl List {
     }
 }
 
-impl fmt::Debug for List {
+impl fmt::Debug for Variable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}[", self.tag)?;
-        self.list_head(f, true)?;
-        write!(f, "]")
+        write!(f, "${}", self.name)?;
+        if self.scope > 0 {
+            write!(f, "/{}", self.scope)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Word {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
