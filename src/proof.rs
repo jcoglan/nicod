@@ -113,10 +113,10 @@ impl Layout<'_> {
         let conc_indent = (divider_width - conc_width) / 2;
 
         if premise_width < conc_width {
-            let premise_offset = premise_left - offset;
-            let premise_indent = (conc_width - premise_width) / 2;
+            let premise_offset = 2 * (premise_left - offset);
+            let premise_indent = conc_width - premise_width;
 
-            premise_left -= cmp::min(premise_offset, premise_indent);
+            premise_left -= cmp::min(premise_offset, premise_indent) / 2;
 
             if premise_offset < premise_indent {
                 self.premise_indent = premise_indent - premise_offset;
@@ -141,6 +141,8 @@ impl Layout<'_> {
         }
 
         let divider = format!("{} {}", self.divider.repeat(DIVIDER), self.proof.rule);
+        let indent = indent / 2;
+
         plan.write(depth + 1, indent + self.divider.left, &divider);
         plan.write(depth, indent + self.conclusion.left, &self.conclusion());
     }
