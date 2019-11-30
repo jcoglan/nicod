@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 #[derive(Clone, Default)]
 pub struct State {
-    values: HashMap<(usize, Rc<Variable>), (usize, Rc<Expr>)>,
+    values: HashMap<(usize, Variable), (usize, Rc<Expr>)>,
 }
 
 impl State {
@@ -27,9 +27,7 @@ impl State {
 
         match &**expr {
             Expr::Var(var) => {
-                let key = (scope, Rc::new(var.clone()));
-
-                if let Some((scope, value)) = self.values.get(&key) {
+                if let Some((scope, value)) = self.values.get(&(scope, var.clone())) {
                     self.resolve_scoped((*scope, value))
                 } else {
                     Rc::clone(expr)
@@ -111,8 +109,7 @@ impl State {
     }
 
     fn assign(&mut self, var: (usize, &Variable), expr: (usize, Rc<Expr>)) -> bool {
-        let key = (var.0, Rc::new(var.1.clone()));
-        self.values.insert(key, expr);
+        self.values.insert((var.0, var.1.clone()), expr);
         true
     }
 
@@ -120,9 +117,7 @@ impl State {
         let mut expr = expr;
 
         while let Expr::Var(var) = &**expr.1 {
-            let key = (expr.0, Rc::new(var.clone()));
-
-            if let Some((scope, value)) = self.values.get(&key) {
+            if let Some((scope, value)) = self.values.get(&(expr.0, var.clone())) {
                 expr = (*scope, value);
             } else {
                 break;
