@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! var {
     ($n:ident) => {
-        Variable::new(stringify!($n))
+        Variable(std::rc::Rc::new(String::from(stringify!($n))))
     };
 }
 
@@ -24,7 +24,7 @@ macro_rules! expr {
     };
     (lst($tag:ident, $items:tt)) => {
         expr!(@wrap Lst List {
-            tag: Rc::new(String::from(stringify!($tag))),
+            tag: std::rc::Rc::new(String::from(stringify!($tag))),
             pair: expr!(@list_items $tag $items),
         })
     };
@@ -48,6 +48,6 @@ macro_rules! expr {
 #[macro_export]
 macro_rules! unify {
     ($xn:ident $xa:tt, $yn:ident $ya:tt) => {
-        State::new().unify(&expr!($xn $xa), &expr!($yn $ya))
+        State::new().unify((0, &expr!($xn $xa)), (0, &expr!($yn $ya)))
     };
 }

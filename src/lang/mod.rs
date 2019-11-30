@@ -29,10 +29,14 @@ impl RuleSet {
     }
 
     pub fn derive(&self, target: &Rc<Expr>) -> Interleave<(State, Rc<Proof>)> {
-        self.derive_in_state(&State::new(), target)
+        self.derive_in_state(&State::new(), (0, target))
     }
 
-    fn derive_in_state(&self, state: &State, target: &Rc<Expr>) -> Interleave<(State, Rc<Proof>)> {
+    fn derive_in_state(
+        &self,
+        state: &State,
+        target: (usize, &Rc<Expr>),
+    ) -> Interleave<(State, Rc<Proof>)> {
         let rules = self.rules.values();
         let streams = rules.map(|rule| rule.match_target(self, state, target));
 
@@ -53,22 +57,18 @@ impl Rule {
         &'a self,
         rule_set: &'a RuleSet,
         state: &State,
-        target: &Rc<Expr>,
+        target: (usize, &Rc<Expr>),
     ) -> Stream<'a, Rc<Proof>> {
         let scope = state.scope();
-        let conclusion = Expr::in_scope(&self.conclusion, scope);
+        let conclusion = (scope, &self.conclusion);
+        let premises = self.premises.iter().map(|premise| (scope, premise));
 
-        let state_or_none = state.unify(target, &conclusion).into_iter();
+        let state_or_none = state.unify(target, conclusion).into_iter();
         let init = Box::new(state_or_none.map(|state| (state, Vector::new())));
-
-        let premises = self
-            .premises
-            .iter()
-            .map(|premise| Expr::in_scope(premise, scope));
 
         let states: Stream<Vector<_>> = premises.fold(init, |states, premise| {
             let streams = states.map(move |(state, proofs)| {
-                let proof_states = rule_set.derive_in_state(&state, &premise);
+                let proof_states = rule_set.derive_in_state(&state, premise);
                 proof_states.map(move |(state, proof)| (state, concat(&proofs, &proof)))
             });
 
@@ -76,7 +76,7 @@ impl Rule {
         });
 
         Box::new(states.map(move |(state, proofs)| {
-            let proof = Proof::new(&self.name, &state, proofs, &conclusion);
+            let proof = Proof::new(&self.name, &state, proofs, conclusion);
             (state, Rc::new(proof))
         }))
     }

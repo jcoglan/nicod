@@ -5,13 +5,18 @@ use test::Bencher;
 use nicod::expr::*;
 use nicod::state::*;
 use nicod::*;
+use std::rc::Rc;
+
+fn unify(a: &Rc<Expr>, b: &Rc<Expr>) -> Option<State> {
+    State::new().unify((0, a), (0, b))
+}
 
 #[bench]
 fn words(bench: &mut Bencher) {
     let expr_a = expr!(wrd(a));
     let expr_b = expr!(wrd(a));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }
 
 #[bench]
@@ -19,7 +24,7 @@ fn var(bench: &mut Bencher) {
     let expr_a = expr!(wrd(a));
     let expr_b = expr!(var(x));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }
 
 #[bench]
@@ -27,7 +32,7 @@ fn seqs_with_vars(bench: &mut Bencher) {
     let expr_a = expr!(seq(wrd(a), var(w), wrd(b), var(x)));
     let expr_b = expr!(seq(var(y), wrd(c), var(z), wrd(d)));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }
 
 #[bench]
@@ -57,7 +62,7 @@ fn nested_seqs(bench: &mut Bencher) {
         )
     ));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }
 
 #[bench]
@@ -87,7 +92,7 @@ fn nested_seqs_with_indirect_vars(bench: &mut Bencher) {
         )
     ));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }
 
 #[bench]
@@ -121,5 +126,5 @@ fn nested_seq_with_late_unequal_word(bench: &mut Bencher) {
         wrd(y)
     ));
 
-    bench.iter(|| State::new().unify(&expr_a, &expr_b));
+    bench.iter(|| unify(&expr_a, &expr_b));
 }

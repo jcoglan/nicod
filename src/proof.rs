@@ -9,7 +9,7 @@ pub struct Proof {
     rule: String,
     state: State,
     parents: Vector<Rc<Proof>>,
-    conclusion: Rc<Expr>,
+    conclusion: (usize, Rc<Expr>),
 }
 
 impl Proof {
@@ -17,18 +17,19 @@ impl Proof {
         rule: &str,
         state: &State,
         proofs: Vector<Rc<Proof>>,
-        conclusion: &Rc<Expr>,
+        conclusion: (usize, &Rc<Expr>),
     ) -> Proof {
         Proof {
             rule: String::from(rule),
             state: state.clone(),
             parents: proofs,
-            conclusion: Rc::clone(conclusion),
+            conclusion: (conclusion.0, Rc::clone(conclusion.1)),
         }
     }
 
     fn conclusion(&self) -> Rc<Expr> {
-        self.state.resolve(&self.conclusion)
+        let (scope, expr) = &self.conclusion;
+        self.state.resolve_scoped((*scope, expr))
     }
 }
 
