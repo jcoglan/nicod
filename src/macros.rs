@@ -13,7 +13,7 @@ macro_rules! expr {
     (var($x:ident)) => {
         expr!(@wrap Var var!($x))
     };
-    (wrd($x:ident)) => {
+    (wrd($x:tt)) => {
         expr!(@wrap Wrd Word(String::from(stringify!($x))))
     };
     (seq($( $n:ident $a:tt ),+)) => {

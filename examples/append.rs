@@ -19,7 +19,7 @@ fn main() {
 
     rules.insert(
         "append-0",
-        &expr!(seq(lst(λ, []), wrd(plus), var(list), wrd(eq), var(list))),
+        &expr!(seq(lst(λ, []), wrd(+), var(list), wrd(=), var(list))),
         &[],
     );
 
@@ -31,16 +31,16 @@ fn main() {
         "append-N",
         &expr!(seq(
             lst(λ, [var(head) | var(tail)]),
-            wrd(plus),
+            wrd(+),
             var(list),
-            wrd(eq),
+            wrd(=),
             lst(λ, [var(head) | var(rest)])
         )),
         &[expr!(seq(
             var(tail),
-            wrd(plus),
+            wrd(+),
             var(list),
-            wrd(eq),
+            wrd(=),
             var(rest)
         ))],
     );
@@ -51,9 +51,9 @@ fn main() {
         &rules,
         expr!(seq(
             lst(λ, [wrd(a), wrd(b), wrd(c),]),
-            wrd(plus),
+            wrd(+),
             lst(λ, [wrd(d), wrd(e),]),
-            wrd(eq),
+            wrd(=),
             var(answer)
         )),
     );
@@ -64,9 +64,9 @@ fn main() {
         &rules,
         expr!(seq(
             var(x),
-            wrd(plus),
+            wrd(+),
             var(y),
-            wrd(eq),
+            wrd(=),
             lst(λ, [wrd(a), wrd(b), wrd(c), wrd(d), wrd(e),])
         )),
     );
@@ -75,7 +75,7 @@ fn main() {
 
     rules.insert(
         "rev-0",
-        &expr!(seq(wrd(rev), lst(λ, []), wrd(eq), lst(λ, []))),
+        &expr!(seq(wrd(rev), lst(λ, []), wrd(=), lst(λ, []))),
         &[],
     );
 
@@ -88,16 +88,16 @@ fn main() {
         &expr!(seq(
             wrd(rev),
             lst(λ, [var(head) | var(tail)]),
-            wrd(eq),
+            wrd(=),
             var(rev)
         )),
         &[
-            expr!(seq(wrd(rev), var(tail), wrd(eq), var(rest))),
+            expr!(seq(wrd(rev), var(tail), wrd(=), var(rest))),
             expr!(seq(
                 var(rest),
-                wrd(plus),
+                wrd(+),
                 lst(λ, [var(head),]),
-                wrd(eq),
+                wrd(=),
                 var(rev)
             )),
         ],
@@ -108,7 +108,7 @@ fn main() {
     let query = expr!(seq(
         wrd(rev),
         lst(λ, [wrd(a), wrd(b), wrd(c),]),
-        wrd(eq),
+        wrd(=),
         var(answer)
     ));
 
@@ -119,7 +119,7 @@ fn main() {
 
     //  [] : List
 
-    rules.insert("type-0", &expr!(seq(lst(λ, []), wrd(is), wrd(List))), &[]);
+    rules.insert("type-0", &expr!(seq(lst(λ, []), wrd(:), wrd(List))), &[]);
 
     //       $tail : List
     //  ----------------------
@@ -127,8 +127,8 @@ fn main() {
 
     rules.insert(
         "type-N",
-        &expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(is), wrd(List))),
-        &[expr!(seq(var(tail), wrd(is), wrd(List)))],
+        &expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(:), wrd(List))),
+        &[expr!(seq(var(tail), wrd(:), wrd(List)))],
     );
 
     //  $a : List       $b : List
@@ -137,10 +137,10 @@ fn main() {
 
     rules.insert(
         "type-append",
-        &expr!(seq(seq(var(a), wrd(plus), var(b)), wrd(is), wrd(List))),
+        &expr!(seq(seq(var(a), wrd(+), var(b)), wrd(:), wrd(List))),
         &[
-            expr!(seq(var(a), wrd(is), wrd(List))),
-            expr!(seq(var(b), wrd(is), wrd(List))),
+            expr!(seq(var(a), wrd(:), wrd(List))),
+            expr!(seq(var(b), wrd(:), wrd(List))),
         ],
     );
 
@@ -148,7 +148,7 @@ fn main() {
 
     derive(
         &rules,
-        expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(is), var(answer))),
+        expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(:), var(answer))),
     );
 
     // ([a, b, c] ++ [d, e]) : ?
@@ -156,10 +156,10 @@ fn main() {
     let query = expr!(seq(
         seq(
             lst(λ, [wrd(a), wrd(b), wrd(c),]),
-            wrd(plus),
+            wrd(+),
             lst(λ, [wrd(d), wrd(e),])
         ),
-        wrd(is),
+        wrd(:),
         var(answer)
     ));
 
@@ -174,13 +174,13 @@ fn main() {
         seq(
             seq(
                 lst(λ, [wrd(a),]),
-                wrd(plus),
-                seq(lst(λ, [wrd(b),]), wrd(plus), lst(λ, [wrd(c),]))
+                wrd(+),
+                seq(lst(λ, [wrd(b),]), wrd(+), lst(λ, [wrd(c),]))
             ),
-            wrd(plus),
+            wrd(+),
             lst(λ, [wrd(d),])
         ),
-        wrd(is),
+        wrd(:),
         var(answer)
     ));
 
