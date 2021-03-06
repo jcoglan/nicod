@@ -19,28 +19,26 @@ impl State {
     }
 
     pub fn resolve(&self, expr: &Rc<Expr>) -> Rc<Expr> {
-        self.resolve_scoped((0, expr))
+        self.resolve_scoped(expr, 0)
     }
 
-    pub fn resolve_scoped(&self, expr: (usize, &Rc<Expr>)) -> Rc<Expr> {
-        let (scope, expr) = expr;
-
-        match &**expr {
+    pub fn resolve_scoped(&self, expr: &Rc<Expr>, scope: usize) -> Rc<Expr> {
+        match expr.as_ref() {
             Expr::Var(var) => {
                 if let Some((scope, value)) = self.values.get(&(scope, var.clone())) {
-                    self.resolve_scoped((*scope, value))
+                    self.resolve_scoped(value, *scope)
                 } else {
                     Rc::clone(expr)
                 }
             }
             Expr::Seq(seq) => {
-                let items = seq.0.iter().map(|item| self.resolve_scoped((scope, item)));
+                let items = seq.0.iter().map(|item| self.resolve_scoped(item, scope));
                 Rc::new(Expr::Seq(Sequence(items.collect())))
             }
             Expr::Lst(lst) => {
                 let pair = lst.pair.as_ref().map(|Pair { head, tail }| Pair {
-                    head: self.resolve_scoped((scope, &head)),
-                    tail: self.resolve_scoped((scope, &tail)),
+                    head: self.resolve_scoped(&head, scope),
+                    tail: self.resolve_scoped(&tail, scope),
                 });
 
                 Rc::new(Expr::Lst(List {
@@ -66,7 +64,7 @@ impl State {
         let (x_scope, x) = self.resolve_var(x);
         let (y_scope, y) = self.resolve_var(y);
 
-        match (&*x, &*y) {
+        match (x.as_ref(), y.as_ref()) {
             (Expr::Wrd(a), Expr::Wrd(b)) => a == b,
             (Expr::Var(a), Expr::Var(b)) if a == b && x_scope == y_scope => true,
             (Expr::Var(v), _) => self.assign((x_scope, v), (y_scope, y)),
@@ -116,7 +114,7 @@ impl State {
     fn resolve_var(&self, expr: (usize, &Rc<Expr>)) -> (usize, Rc<Expr>) {
         let mut expr = expr;
 
-        while let Expr::Var(var) = &**expr.1 {
+        while let Expr::Var(var) = expr.1.as_ref() {
             if let Some((scope, value)) = self.values.get(&(expr.0, var.clone())) {
                 expr = (*scope, value);
             } else {

@@ -29,7 +29,7 @@ impl Proof {
 
     fn conclusion(&self) -> Rc<Expr> {
         let (scope, expr) = &self.conclusion;
-        self.state.resolve_scoped((*scope, expr))
+        self.state.resolve_scoped(expr, *scope)
     }
 }
 
@@ -69,7 +69,7 @@ struct Layout<'a> {
 
 impl Layout<'_> {
     fn new(proof: &Proof) -> Layout<'_> {
-        let parents = proof.parents.iter().map(|t| Layout::new(&**t)).collect();
+        let parents = proof.parents.iter().map(|t| Layout::new(t)).collect();
 
         Layout {
             proof,
