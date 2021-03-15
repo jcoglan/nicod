@@ -1,9 +1,8 @@
 use nicod::expr::*;
 use nicod::lang::*;
 use nicod::*;
-use std::rc::Rc;
 
-fn derive(rules: &RuleSet, query: Rc<Expr>) {
+fn derive(rules: &RuleSet, query: Expr) {
     println!("----[ {} ]----", query);
 
     for (i, (state, _)) in rules.derive(&query).enumerate() {

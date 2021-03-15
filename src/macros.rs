@@ -1,14 +1,14 @@
 #[macro_export]
 macro_rules! var {
     ($n:ident) => {
-        Variable(std::rc::Rc::new(String::from(stringify!($n))))
+        Variable(String::from(stringify!($n)))
     };
 }
 
 #[macro_export]
 macro_rules! expr {
     (@wrap $t:ident $( $e:tt )*) => {
-        std::rc::Rc::new(Expr::$t($( $e )*))
+        Expr::$t(std::rc::Rc::new($( $e )*))
     };
     (var($x:ident)) => {
         expr!(@wrap Var var!($x))
@@ -24,7 +24,7 @@ macro_rules! expr {
     };
     (lst($tag:ident, $items:tt)) => {
         expr!(@wrap Lst List {
-            tag: std::rc::Rc::new(String::from(stringify!($tag))),
+            tag: String::from(stringify!($tag)),
             pair: expr!(@list_items $tag $items),
         })
     };

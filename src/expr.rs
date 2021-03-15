@@ -1,33 +1,33 @@
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    Var(Variable),
-    Wrd(Word),
-    Seq(Sequence),
-    Lst(List),
+    Var(Rc<Variable>),
+    Wrd(Rc<Word>),
+    Seq(Rc<Sequence>),
+    Lst(Rc<List>),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Variable(pub Rc<String>);
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Variable(pub String);
 
 #[derive(Debug, PartialEq)]
 pub struct Word(pub String);
 
 #[derive(Debug, PartialEq)]
-pub struct Sequence(pub Vec<Rc<Expr>>);
+pub struct Sequence(pub Vec<Expr>);
 
 #[derive(Debug, PartialEq)]
 pub struct List {
-    pub tag: Rc<String>,
+    pub tag: String,
     pub pair: Option<Pair>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Pair {
-    pub head: Rc<Expr>,
-    pub tail: Rc<Expr>,
+    pub head: Expr,
+    pub tail: Expr,
 }
 
 impl fmt::Display for Expr {
@@ -51,7 +51,7 @@ impl Expr {
 
     fn list_tail(&self, f: &mut fmt::Formatter, tag: &str) -> fmt::Result {
         match self {
-            Expr::Lst(lst) if tag == *lst.tag => lst.list_head(f, false),
+            Expr::Lst(lst) if tag == lst.tag => lst.list_head(f, false),
             _ => {
                 write!(f, " | ")?;
                 fmt::Display::fmt(self, f)

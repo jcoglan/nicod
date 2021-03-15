@@ -39,7 +39,7 @@ fn transitive_rules() -> RuleSet {
     rules
 }
 
-fn subtype_search(bench: &mut Bencher, typ: std::rc::Rc<Expr>) {
+fn subtype_search(bench: &mut Bencher, typ: Expr) {
     let rules = transitive_rules();
     let query = expr!(seq(wrd(a), wrd(sub), var(t)));
     let target = expr!(var(t));

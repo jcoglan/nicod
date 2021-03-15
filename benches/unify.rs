@@ -5,9 +5,8 @@ use test::Bencher;
 use nicod::expr::*;
 use nicod::state::*;
 use nicod::*;
-use std::rc::Rc;
 
-fn unify(a: &Rc<Expr>, b: &Rc<Expr>) -> Option<State> {
+fn unify(a: &Expr, b: &Expr) -> Option<State> {
     State::new().unify((0, a), (0, b))
 }
 

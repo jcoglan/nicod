@@ -18,24 +18,24 @@ impl RuleSet {
         RuleSet::default()
     }
 
-    pub fn insert(&mut self, name: &str, conclusion: &Rc<Expr>, premises: &[Rc<Expr>]) {
+    pub fn insert(&mut self, name: &str, conclusion: &Expr, premises: &[Expr]) {
         let rule = Rule {
             name: String::from(name),
             premises: Vec::from(premises),
-            conclusion: Rc::clone(conclusion),
+            conclusion: conclusion.clone(),
         };
 
         self.rules.insert(String::from(name), rule);
     }
 
-    pub fn derive(&self, target: &Rc<Expr>) -> Interleave<(State, Rc<Proof>)> {
+    pub fn derive(&self, target: &Expr) -> Interleave<(State, Rc<Proof>)> {
         self.derive_in_state(&State::new(), (0, target))
     }
 
     fn derive_in_state(
         &self,
         state: &State,
-        target: (usize, &Rc<Expr>),
+        target: (usize, &Expr),
     ) -> Interleave<(State, Rc<Proof>)> {
         let rules = self.rules.values();
         let streams = rules.map(|rule| rule.match_target(self, state, target));
@@ -48,8 +48,8 @@ type Stream<'a, T> = BoxIter<'a, (State, T)>;
 
 struct Rule {
     name: String,
-    premises: Vec<Rc<Expr>>,
-    conclusion: Rc<Expr>,
+    premises: Vec<Expr>,
+    conclusion: Expr,
 }
 
 impl Rule {
@@ -57,7 +57,7 @@ impl Rule {
         &'a self,
         rule_set: &'a RuleSet,
         state: &State,
-        target: (usize, &Rc<Expr>),
+        target: (usize, &Expr),
     ) -> Stream<'a, Rc<Proof>> {
         let scope = state.scope();
         let conclusion = (scope, &self.conclusion);

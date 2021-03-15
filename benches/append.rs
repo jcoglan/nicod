@@ -79,15 +79,15 @@ fn list_rules() -> RuleSet {
     rules
 }
 
-fn word(n: usize) -> Rc<Expr> {
-    Rc::new(Expr::Wrd(Word(format!("word-{}", n))))
+fn word(n: usize) -> Expr {
+    Expr::Wrd(Rc::new(Word(format!("word-{}", n))))
 }
 
-fn gen_sequence(n: usize, term: &str) -> Rc<Expr> {
-    let mut expr = Rc::new(Expr::Wrd(Word(String::from(term))));
+fn gen_sequence(n: usize, term: &str) -> Expr {
+    let mut expr = Expr::Wrd(Rc::new(Word(String::from(term))));
 
     for i in (0..n).rev() {
-        expr = Rc::new(Expr::Seq(Sequence(vec![word(i), expr])));
+        expr = Expr::Seq(Rc::new(Sequence(vec![word(i), expr])));
     }
     expr
 }
@@ -95,7 +95,7 @@ fn gen_sequence(n: usize, term: &str) -> Rc<Expr> {
 fn sequence_append(bench: &mut Bencher, n: usize, term: &str) {
     let rules = sequence_rules();
 
-    let query = Rc::new(Expr::Seq(Sequence(vec![
+    let query = Expr::Seq(Rc::new(Sequence(vec![
         gen_sequence(n, term),
         expr!(wrd(plus)),
         gen_sequence(n, "nil"),
@@ -136,20 +136,20 @@ fn sequence_append_fail_1_000(bench: &mut Bencher) {
     sequence_append(bench, 1_000, "nope");
 }
 
-fn gen_list(n: usize, tag: &str) -> Rc<Expr> {
-    let tag = Rc::new(String::from(tag));
+fn gen_list(n: usize, tag: &str) -> Expr {
+    let tag = String::from(tag);
 
-    let mut tail = Rc::new(Expr::Lst(List {
-        tag: Rc::clone(&tag),
+    let mut tail = Expr::Lst(Rc::new(List {
+        tag: tag.clone(),
         pair: None,
     }));
 
     for i in (0..n).rev() {
-        let tag = Rc::clone(&tag);
+        let tag = tag.clone();
         let head = word(i);
         let pair = Some(Pair { head, tail });
 
-        tail = Rc::new(Expr::Lst(List { tag, pair }));
+        tail = Expr::Lst(Rc::new(List { tag, pair }));
     }
     tail
 }
@@ -157,7 +157,7 @@ fn gen_list(n: usize, tag: &str) -> Rc<Expr> {
 fn list_append(bench: &mut Bencher, n: usize, tag: &str) {
     let rules = list_rules();
 
-    let query = Rc::new(Expr::Seq(Sequence(vec![
+    let query = Expr::Seq(Rc::new(Sequence(vec![
         gen_list(n, tag),
         expr!(wrd(plus)),
         gen_list(n, "λ"),
