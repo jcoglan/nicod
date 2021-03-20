@@ -6,7 +6,7 @@ use nicod::expr::*;
 use nicod::state::*;
 use nicod::*;
 
-fn unify(a: &Expr, b: &Expr) -> Option<State> {
+fn unify<'e>(a: &'e Expr, b: &'e Expr) -> Option<State<'e>> {
     State::new().unify((0, a), (0, b))
 }
 

@@ -8,7 +8,7 @@ macro_rules! var {
 #[macro_export]
 macro_rules! expr {
     (@wrap $t:ident $( $e:tt )*) => {
-        Expr::$t(std::rc::Rc::new($( $e )*))
+        Expr::$t($( $e )*)
     };
     (var($x:ident)) => {
         expr!(@wrap Var var!($x))
@@ -33,8 +33,8 @@ macro_rules! expr {
     };
     (@list_items $tag:ident [$n:ident $a:tt $( $rest:tt )*]) => {
         Some(Pair {
-            head: expr!($n $a),
-            tail: expr!(@list_tail $tag $( $rest )*),
+            head: Box::new(expr!($n $a)),
+            tail: Box::new(expr!(@list_tail $tag $( $rest )*)),
         })
     };
     (@list_tail $tag:ident , $( $rest:tt )*) => {
@@ -42,12 +42,5 @@ macro_rules! expr {
     };
     (@list_tail $tag:ident | $( $rest:tt )*) => {
         expr!($( $rest )*)
-    };
-}
-
-#[macro_export]
-macro_rules! unify {
-    ($xn:ident $xa:tt, $yn:ident $ya:tt) => {
-        State::new().unify((0, &expr!($xn $xa)), (0, &expr!($yn $ya)))
     };
 }

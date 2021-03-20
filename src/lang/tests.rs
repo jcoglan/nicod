@@ -10,8 +10,8 @@ fn append_rules() -> RuleSet {
 
     rules.insert(
         "append-0",
-        &expr!(seq(wrd(nil), wrd(plus), var(list), wrd(eq), var(list))),
-        &[],
+        expr!(seq(wrd(nil), wrd(plus), var(list), wrd(eq), var(list))),
+        vec![],
     );
 
     //          $tail ++ $list = $rest
@@ -20,14 +20,14 @@ fn append_rules() -> RuleSet {
 
     rules.insert(
         "append-N",
-        &expr!(seq(
+        expr!(seq(
             seq(var(head), var(tail)),
             wrd(plus),
             var(list),
             wrd(eq),
             seq(var(head), var(rest))
         )),
-        &[expr!(seq(
+        vec![expr!(seq(
             var(tail),
             wrd(plus),
             var(list),
@@ -134,7 +134,7 @@ fn type_rules() -> RuleSet {
 
     //  nil : List
 
-    rules.insert("type-0", &expr!(seq(wrd(nil), wrd(is), wrd(List))), &[]);
+    rules.insert("type-0", expr!(seq(wrd(nil), wrd(is), wrd(List))), vec![]);
 
     //      $tail : List
     //  --------------------
@@ -142,8 +142,8 @@ fn type_rules() -> RuleSet {
 
     rules.insert(
         "type-N",
-        &expr!(seq(seq(var(head), var(tail)), wrd(is), wrd(List))),
-        &[expr!(seq(var(tail), wrd(is), wrd(List)))],
+        expr!(seq(seq(var(head), var(tail)), wrd(is), wrd(List))),
+        vec![expr!(seq(var(tail), wrd(is), wrd(List)))],
     );
 
     //  $a : List       $b : List
@@ -152,8 +152,8 @@ fn type_rules() -> RuleSet {
 
     rules.insert(
         "type-append",
-        &expr!(seq(seq(var(a), wrd(plus), var(b)), wrd(is), wrd(List))),
-        &[
+        expr!(seq(seq(var(a), wrd(plus), var(b)), wrd(is), wrd(List))),
+        vec![
             expr!(seq(var(a), wrd(is), wrd(List))),
             expr!(seq(var(b), wrd(is), wrd(List))),
         ],
@@ -207,7 +207,7 @@ fn transitive_rules() -> RuleSet {
 
     //  $x <: $x
 
-    rules.insert("S-Refl", &expr!(seq(var(x), wrd(sub), var(x))), &[]);
+    rules.insert("S-Refl", expr!(seq(var(x), wrd(sub), var(x))), vec![]);
 
     //  $x <: $y        $y <: $z
     //  ------------------------
@@ -215,8 +215,8 @@ fn transitive_rules() -> RuleSet {
 
     rules.insert(
         "S-Trans",
-        &expr!(seq(var(x), wrd(sub), var(z))),
-        &[
+        expr!(seq(var(x), wrd(sub), var(z))),
+        vec![
             expr!(seq(var(x), wrd(sub), var(y))),
             expr!(seq(var(y), wrd(sub), var(z))),
         ],
@@ -226,9 +226,9 @@ fn transitive_rules() -> RuleSet {
     //  b <: c
     //  c <: d
 
-    rules.insert("S-AB", &expr!(seq(wrd(a), wrd(sub), wrd(b))), &[]);
-    rules.insert("S-BC", &expr!(seq(wrd(b), wrd(sub), wrd(c))), &[]);
-    rules.insert("S-CD", &expr!(seq(wrd(c), wrd(sub), wrd(d))), &[]);
+    rules.insert("S-AB", expr!(seq(wrd(a), wrd(sub), wrd(b))), vec![]);
+    rules.insert("S-BC", expr!(seq(wrd(b), wrd(sub), wrd(c))), vec![]);
+    rules.insert("S-CD", expr!(seq(wrd(c), wrd(sub), wrd(d))), vec![]);
 
     rules
 }

@@ -1,18 +1,17 @@
 use std::fmt;
-use std::rc::Rc;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Expr {
-    Var(Rc<Variable>),
-    Wrd(Rc<Word>),
-    Seq(Rc<Sequence>),
-    Lst(Rc<List>),
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Variable(pub String);
 
 #[derive(Debug, PartialEq)]
+pub enum Expr {
+    Var(Variable),
+    Wrd(Word),
+    Seq(Sequence),
+    Lst(List),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Variable(pub String);
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Word(pub String);
 
 #[derive(Debug, PartialEq)]
@@ -26,8 +25,8 @@ pub struct List {
 
 #[derive(Debug, PartialEq)]
 pub struct Pair {
-    pub head: Expr,
-    pub tail: Expr,
+    pub head: Box<Expr>,
+    pub tail: Box<Expr>,
 }
 
 impl fmt::Display for Expr {

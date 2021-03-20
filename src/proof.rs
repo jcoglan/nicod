@@ -5,25 +5,25 @@ use std::cmp;
 use std::fmt;
 use std::rc::Rc;
 
-pub struct Proof {
+pub struct Proof<'e> {
     rule: String,
-    state: State,
-    parents: Vector<Rc<Proof>>,
-    conclusion: (usize, Expr),
+    state: State<'e>,
+    parents: Vector<Rc<Proof<'e>>>,
+    conclusion: (usize, &'e Expr),
 }
 
-impl Proof {
+impl<'e> Proof<'e> {
     pub fn new(
         rule: &str,
-        state: &State,
-        proofs: Vector<Rc<Proof>>,
-        (scope, conclusion): (usize, &Expr),
-    ) -> Proof {
+        state: &State<'e>,
+        proofs: Vector<Rc<Proof<'e>>>,
+        conclusion: (usize, &'e Expr),
+    ) -> Proof<'e> {
         Proof {
             rule: String::from(rule),
             state: state.clone(),
             parents: proofs,
-            conclusion: (scope, conclusion.clone()),
+            conclusion,
         }
     }
 
@@ -33,7 +33,7 @@ impl Proof {
     }
 }
 
-impl fmt::Debug for Proof {
+impl fmt::Debug for Proof<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         display_nested(self, f, 1)
     }
@@ -48,7 +48,7 @@ fn display_nested(proof: &Proof, f: &mut fmt::Formatter, level: usize) -> fmt::R
     Ok(())
 }
 
-impl fmt::Display for Proof {
+impl fmt::Display for Proof<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut layout = Layout::new(self);
         layout.render(f)
@@ -58,17 +58,17 @@ impl fmt::Display for Proof {
 const DIVIDER: char = '\u{2500}';
 const PADDING: usize = 3;
 
-struct Layout<'a> {
-    proof: &'a Proof,
-    parents: Vec<Layout<'a>>,
+struct Layout<'a, 'p> {
+    proof: &'a Proof<'p>,
+    parents: Vec<Layout<'a, 'p>>,
     premise_indent: usize,
     divider: Bounds,
     conclusion: Bounds,
     region: Bounds,
 }
 
-impl Layout<'_> {
-    fn new(proof: &Proof) -> Layout<'_> {
+impl<'a, 'p> Layout<'a, 'p> {
+    fn new(proof: &'a Proof<'p>) -> Layout<'a, 'p> {
         let parents = proof.parents.iter().map(|t| Layout::new(t)).collect();
 
         Layout {

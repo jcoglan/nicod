@@ -2,15 +2,15 @@ mod tests;
 
 use crate::expr::*;
 use im::hashmap::HashMap;
-use std::rc::Rc;
+use std::mem::transmute;
 
 #[derive(Clone, Default)]
-pub struct State {
-    values: HashMap<(usize, Rc<Variable>), (usize, Expr)>,
+pub struct State<'e> {
+    values: HashMap<(usize, &'e Variable), (usize, &'e Expr)>,
 }
 
-impl State {
-    pub fn new() -> State {
+impl<'e> State<'e> {
+    pub fn new() -> State<'e> {
         State::default()
     }
 
@@ -25,32 +25,34 @@ impl State {
     pub fn resolve_scoped(&self, expr: &Expr, scope: usize) -> Expr {
         match expr {
             Expr::Var(var) => {
-                if let Some((scope, value)) = self.values.get(&(scope, var.clone())) {
+                let var: &'e Variable = unsafe { transmute(var) };
+
+                if let Some((scope, value)) = self.values.get(&(scope, var)) {
                     self.resolve_scoped(value, *scope)
                 } else {
-                    expr.clone()
+                    Expr::Var(var.clone())
                 }
             }
             Expr::Seq(seq) => {
                 let items = seq.0.iter().map(|item| self.resolve_scoped(item, scope));
-                Expr::Seq(Rc::new(Sequence(items.collect())))
+                Expr::Seq(Sequence(items.collect()))
             }
             Expr::Lst(lst) => {
                 let pair = lst.pair.as_ref().map(|Pair { head, tail }| Pair {
-                    head: self.resolve_scoped(&head, scope),
-                    tail: self.resolve_scoped(&tail, scope),
+                    head: Box::new(self.resolve_scoped(&head, scope)),
+                    tail: Box::new(self.resolve_scoped(&tail, scope)),
                 });
 
-                Expr::Lst(Rc::new(List {
+                Expr::Lst(List {
                     tag: lst.tag.clone(),
                     pair,
-                }))
+                })
             }
-            _ => expr.clone(),
+            Expr::Wrd(wrd) => Expr::Wrd(wrd.clone()),
         }
     }
 
-    pub fn unify(&self, x: (usize, &Expr), y: (usize, &Expr)) -> Option<State> {
+    pub fn unify(&self, x: (usize, &'e Expr), y: (usize, &'e Expr)) -> Option<State<'e>> {
         let mut state = self.clone();
 
         if state.unify_mut(x, y) {
@@ -60,22 +62,22 @@ impl State {
         }
     }
 
-    fn unify_mut(&mut self, x: (usize, &Expr), y: (usize, &Expr)) -> bool {
+    fn unify_mut(&mut self, x: (usize, &'e Expr), y: (usize, &'e Expr)) -> bool {
         let (x_scope, x) = self.resolve_var(x);
         let (y_scope, y) = self.resolve_var(y);
 
-        match (&x, &y) {
+        match (x, y) {
             (Expr::Wrd(a), Expr::Wrd(b)) => a == b,
             (Expr::Var(a), Expr::Var(b)) if a == b && x_scope == y_scope => true,
             (Expr::Var(v), _) => self.assign((x_scope, v), (y_scope, y)),
             (_, Expr::Var(v)) => self.assign((y_scope, v), (x_scope, x)),
-            (Expr::Seq(a), Expr::Seq(b)) => self.unify_sequence((x_scope, &a), (y_scope, &b)),
-            (Expr::Lst(a), Expr::Lst(b)) => self.unify_list((x_scope, &a), (y_scope, &b)),
+            (Expr::Seq(a), Expr::Seq(b)) => self.unify_sequence((x_scope, a), (y_scope, b)),
+            (Expr::Lst(a), Expr::Lst(b)) => self.unify_list((x_scope, a), (y_scope, b)),
             _ => false,
         }
     }
 
-    fn unify_sequence(&mut self, a: (usize, &Sequence), b: (usize, &Sequence)) -> bool {
+    fn unify_sequence(&mut self, a: (usize, &'e Sequence), b: (usize, &'e Sequence)) -> bool {
         let (a_scope, Sequence(a_items)) = a;
         let (b_scope, Sequence(b_items)) = b;
 
@@ -88,7 +90,7 @@ impl State {
         })
     }
 
-    fn unify_list(&mut self, a: (usize, &List), b: (usize, &List)) -> bool {
+    fn unify_list(&mut self, a: (usize, &'e List), b: (usize, &'e List)) -> bool {
         let (a_scope, a) = a;
         let (b_scope, b) = b;
 
@@ -106,22 +108,22 @@ impl State {
         }
     }
 
-    fn assign(&mut self, var: (usize, &Rc<Variable>), expr: (usize, Expr)) -> bool {
-        self.values.insert((var.0, var.1.clone()), expr);
+    fn assign(&mut self, var: (usize, &'e Variable), expr: (usize, &'e Expr)) -> bool {
+        self.values.insert(var, expr);
         true
     }
 
-    fn resolve_var(&self, expr: (usize, &Expr)) -> (usize, Expr) {
+    fn resolve_var(&self, expr: (usize, &'e Expr)) -> (usize, &'e Expr) {
         let mut expr = expr;
 
         while let Expr::Var(var) = expr.1 {
-            if let Some((scope, value)) = self.values.get(&(expr.0, var.clone())) {
+            if let Some((scope, value)) = self.values.get(&(expr.0, var)) {
                 expr = (*scope, value);
             } else {
                 break;
             }
         }
 
-        (expr.0, expr.1.clone())
+        expr
     }
 }

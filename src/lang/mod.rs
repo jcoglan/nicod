@@ -24,25 +24,25 @@ impl RuleSet {
         RuleSet::default()
     }
 
-    pub fn insert(&mut self, name: &str, conclusion: &Expr, premises: &[Expr]) {
+    pub fn insert(&mut self, name: &str, conclusion: Expr, premises: Vec<Expr>) {
         let rule = Rule {
             name: String::from(name),
-            premises: Vec::from(premises),
-            conclusion: conclusion.clone(),
+            premises,
+            conclusion,
         };
 
         self.rules.insert(String::from(name), rule);
     }
 
-    pub fn derive(&self, target: &Expr) -> Interleave<(State, Rc<Proof>)> {
+    pub fn derive<'r>(&'r self, target: &'r Expr) -> Interleave<(State<'r>, Rc<Proof<'r>>)> {
         self.derive_in_state(&State::new(), (0, target))
     }
 
-    fn derive_in_state(
-        &self,
-        state: &State,
-        target: (usize, &Expr),
-    ) -> Interleave<(State, Rc<Proof>)> {
+    fn derive_in_state<'r>(
+        &'r self,
+        state: &State<'r>,
+        target: (usize, &'r Expr),
+    ) -> Interleave<(State<'r>, Rc<Proof<'r>>)> {
         let streams = self.rules.values().map(|rule| {
             let invocation = Invocation {
                 rule_set: self,
@@ -62,10 +62,10 @@ struct Invocation<'r> {
     scope: usize,
 }
 
-type Stream<'r, T> = BoxIter<'r, (State, T)>;
+type Stream<'r, T> = BoxIter<'r, (State<'r>, T)>;
 
 impl<'r> Invocation<'r> {
-    fn apply(&self, state: &State, target: (usize, &Expr)) -> Stream<'r, Rc<Proof>> {
+    fn apply(&self, state: &State<'r>, target: (usize, &'r Expr)) -> Stream<'r, Rc<Proof<'r>>> {
         let rule_name = &self.rule.name;
 
         let conclusion = (self.scope, &self.rule.conclusion);
@@ -80,7 +80,7 @@ impl<'r> Invocation<'r> {
         Box::new(proof_states)
     }
 
-    fn match_premises(&self, state: Option<State>) -> Stream<'r, Vector<Rc<Proof>>> {
+    fn match_premises(&self, state: Option<State<'r>>) -> Stream<'r, Vector<Rc<Proof<'r>>>> {
         let rule_set = self.rule_set;
 
         let premises = self.rule.premises.iter().map(|expr| (self.scope, expr));

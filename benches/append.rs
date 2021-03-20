@@ -5,7 +5,6 @@ use test::Bencher;
 use nicod::expr::*;
 use nicod::lang::RuleSet;
 use nicod::*;
-use std::rc::Rc;
 
 fn sequence_rules() -> RuleSet {
     let mut rules = RuleSet::new();
@@ -14,8 +13,8 @@ fn sequence_rules() -> RuleSet {
 
     rules.insert(
         "append-0",
-        &expr!(seq(wrd(nil), wrd(plus), var(list), wrd(eq), var(list))),
-        &[],
+        expr!(seq(wrd(nil), wrd(plus), var(list), wrd(eq), var(list))),
+        vec![],
     );
 
     //          $tail ++ $list = $rest
@@ -24,14 +23,14 @@ fn sequence_rules() -> RuleSet {
 
     rules.insert(
         "append-N",
-        &expr!(seq(
+        expr!(seq(
             seq(var(head), var(tail)),
             wrd(plus),
             var(list),
             wrd(eq),
             seq(var(head), var(rest))
         )),
-        &[expr!(seq(
+        vec![expr!(seq(
             var(tail),
             wrd(plus),
             var(list),
@@ -50,8 +49,8 @@ fn list_rules() -> RuleSet {
 
     rules.insert(
         "append-0",
-        &expr!(seq(lst(λ, []), wrd(plus), var(list), wrd(eq), var(list))),
-        &[],
+        expr!(seq(lst(λ, []), wrd(plus), var(list), wrd(eq), var(list))),
+        vec![],
     );
 
     //            $tail ++ $list = $rest
@@ -60,14 +59,14 @@ fn list_rules() -> RuleSet {
 
     rules.insert(
         "append-N",
-        &expr!(seq(
+        expr!(seq(
             lst(λ, [var(head) | var(tail)]),
             wrd(plus),
             var(list),
             wrd(eq),
             lst(λ, [var(head) | var(rest)])
         )),
-        &[expr!(seq(
+        vec![expr!(seq(
             var(tail),
             wrd(plus),
             var(list),
@@ -80,14 +79,14 @@ fn list_rules() -> RuleSet {
 }
 
 fn word(n: usize) -> Expr {
-    Expr::Wrd(Rc::new(Word(format!("word-{}", n))))
+    Expr::Wrd(Word(format!("word-{}", n)))
 }
 
 fn gen_sequence(n: usize, term: &str) -> Expr {
-    let mut expr = Expr::Wrd(Rc::new(Word(String::from(term))));
+    let mut expr = Expr::Wrd(Word(String::from(term)));
 
     for i in (0..n).rev() {
-        expr = Expr::Seq(Rc::new(Sequence(vec![word(i), expr])));
+        expr = Expr::Seq(Sequence(vec![word(i), expr]));
     }
     expr
 }
@@ -95,13 +94,13 @@ fn gen_sequence(n: usize, term: &str) -> Expr {
 fn sequence_append(bench: &mut Bencher, n: usize, term: &str) {
     let rules = sequence_rules();
 
-    let query = Expr::Seq(Rc::new(Sequence(vec![
+    let query = Expr::Seq(Sequence(vec![
         gen_sequence(n, term),
         expr!(wrd(plus)),
         gen_sequence(n, "nil"),
         expr!(wrd(eq)),
         expr!(var(answer)),
-    ])));
+    ]));
 
     bench.iter(|| rules.derive(&query).count());
 }
@@ -139,17 +138,20 @@ fn sequence_append_fail_1_000(bench: &mut Bencher) {
 fn gen_list(n: usize, tag: &str) -> Expr {
     let tag = String::from(tag);
 
-    let mut tail = Expr::Lst(Rc::new(List {
+    let mut tail = Expr::Lst(List {
         tag: tag.clone(),
         pair: None,
-    }));
+    });
 
     for i in (0..n).rev() {
         let tag = tag.clone();
         let head = word(i);
-        let pair = Some(Pair { head, tail });
+        let pair = Some(Pair {
+            head: Box::new(head),
+            tail: Box::new(tail),
+        });
 
-        tail = Expr::Lst(Rc::new(List { tag, pair }));
+        tail = Expr::Lst(List { tag, pair });
     }
     tail
 }
@@ -157,13 +159,13 @@ fn gen_list(n: usize, tag: &str) -> Expr {
 fn list_append(bench: &mut Bencher, n: usize, tag: &str) {
     let rules = list_rules();
 
-    let query = Expr::Seq(Rc::new(Sequence(vec![
+    let query = Expr::Seq(Sequence(vec![
         gen_list(n, tag),
         expr!(wrd(plus)),
         gen_list(n, "λ"),
         expr!(wrd(eq)),
         expr!(var(answer)),
-    ])));
+    ]));
 
     bench.iter(|| rules.derive(&query).count());
 }

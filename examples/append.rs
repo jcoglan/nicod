@@ -2,11 +2,11 @@ use nicod::expr::*;
 use nicod::lang::*;
 use nicod::*;
 
-fn derive(rules: &RuleSet, query: Expr) {
+fn derive(rules: &RuleSet, query: &Expr) {
     println!("----[ {} ]----", query);
 
-    for (i, (state, _)) in rules.derive(&query).enumerate() {
-        println!("#{}: {}", i + 1, state.resolve(&query));
+    for (i, (state, _)) in rules.derive(query).enumerate() {
+        println!("#{}: {}", i + 1, state.resolve(query));
     }
     println!("");
 }
@@ -18,8 +18,8 @@ fn main() {
 
     rules.insert(
         "append-0",
-        &expr!(seq(lst(λ, []), wrd(+), var(list), wrd(=), var(list))),
-        &[],
+        expr!(seq(lst(λ, []), wrd(+), var(list), wrd(=), var(list))),
+        vec![],
     );
 
     //            $tail ++ $list = $rest
@@ -28,14 +28,14 @@ fn main() {
 
     rules.insert(
         "append-N",
-        &expr!(seq(
+        expr!(seq(
             lst(λ, [var(head) | var(tail)]),
             wrd(+),
             var(list),
             wrd(=),
             lst(λ, [var(head) | var(rest)])
         )),
-        &[expr!(seq(
+        vec![expr!(seq(
             var(tail),
             wrd(+),
             var(list),
@@ -48,7 +48,7 @@ fn main() {
 
     derive(
         &rules,
-        expr!(seq(
+        &expr!(seq(
             lst(λ, [wrd(a), wrd(b), wrd(c),]),
             wrd(+),
             lst(λ, [wrd(d), wrd(e),]),
@@ -61,7 +61,7 @@ fn main() {
 
     derive(
         &rules,
-        expr!(seq(
+        &expr!(seq(
             var(x),
             wrd(+),
             var(y),
@@ -74,8 +74,8 @@ fn main() {
 
     rules.insert(
         "rev-0",
-        &expr!(seq(wrd(rev), lst(λ, []), wrd(=), lst(λ, []))),
-        &[],
+        expr!(seq(wrd(rev), lst(λ, []), wrd(=), lst(λ, []))),
+        vec![],
     );
 
     //  rev $tail = $rest       $rest ++ [$head] = $rev
@@ -84,13 +84,13 @@ fn main() {
 
     rules.insert(
         "rev-N",
-        &expr!(seq(
+        expr!(seq(
             wrd(rev),
             lst(λ, [var(head) | var(tail)]),
             wrd(=),
             var(rev)
         )),
-        &[
+        vec![
             expr!(seq(wrd(rev), var(tail), wrd(=), var(rest))),
             expr!(seq(
                 var(rest),
@@ -111,14 +111,14 @@ fn main() {
         var(answer)
     ));
 
-    derive(&rules, query.clone());
+    derive(&rules, &query);
     for (_, proof) in rules.derive(&query) {
         println!("{}", proof);
     }
 
     //  [] : List
 
-    rules.insert("type-0", &expr!(seq(lst(λ, []), wrd(:), wrd(List))), &[]);
+    rules.insert("type-0", expr!(seq(lst(λ, []), wrd(:), wrd(List))), vec![]);
 
     //       $tail : List
     //  ----------------------
@@ -126,8 +126,8 @@ fn main() {
 
     rules.insert(
         "type-N",
-        &expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(:), wrd(List))),
-        &[expr!(seq(var(tail), wrd(:), wrd(List)))],
+        expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(:), wrd(List))),
+        vec![expr!(seq(var(tail), wrd(:), wrd(List)))],
     );
 
     //  $a : List       $b : List
@@ -136,8 +136,8 @@ fn main() {
 
     rules.insert(
         "type-append",
-        &expr!(seq(seq(var(a), wrd(+), var(b)), wrd(:), wrd(List))),
-        &[
+        expr!(seq(seq(var(a), wrd(+), var(b)), wrd(:), wrd(List))),
+        vec![
             expr!(seq(var(a), wrd(:), wrd(List))),
             expr!(seq(var(b), wrd(:), wrd(List))),
         ],
@@ -147,7 +147,7 @@ fn main() {
 
     derive(
         &rules,
-        expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(:), var(answer))),
+        &expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(:), var(answer))),
     );
 
     // ([a, b, c] ++ [d, e]) : ?
@@ -162,7 +162,7 @@ fn main() {
         var(answer)
     ));
 
-    derive(&rules, query.clone());
+    derive(&rules, &query);
     for (_, proof) in rules.derive(&query) {
         println!("{}", proof);
     }
@@ -183,7 +183,7 @@ fn main() {
         var(answer)
     ));
 
-    derive(&rules, query.clone());
+    derive(&rules, &query);
     for (_, proof) in rules.derive(&query) {
         println!("{}", proof);
     }
