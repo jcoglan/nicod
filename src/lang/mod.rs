@@ -13,6 +13,12 @@ pub struct RuleSet {
     rules: IndexMap<String, Rule>,
 }
 
+struct Rule {
+    name: String,
+    premises: Vec<Expr>,
+    conclusion: Expr,
+}
+
 impl RuleSet {
     pub fn new() -> RuleSet {
         RuleSet::default()
@@ -37,48 +43,57 @@ impl RuleSet {
         state: &State,
         target: (usize, &Expr),
     ) -> Interleave<(State, Rc<Proof>)> {
-        let rules = self.rules.values();
-        let streams = rules.map(|rule| rule.match_target(self, state, target));
+        let streams = self.rules.values().map(|rule| {
+            let invocation = Invocation {
+                rule_set: self,
+                rule,
+                scope: state.scope(),
+            };
+            invocation.apply(state, target)
+        });
 
         Interleave::new(streams)
     }
 }
 
-type Stream<'a, T> = BoxIter<'a, (State, T)>;
-
-struct Rule {
-    name: String,
-    premises: Vec<Expr>,
-    conclusion: Expr,
+struct Invocation<'r> {
+    rule_set: &'r RuleSet,
+    rule: &'r Rule,
+    scope: usize,
 }
 
-impl Rule {
-    fn match_target<'a>(
-        &'a self,
-        rule_set: &'a RuleSet,
-        state: &State,
-        target: (usize, &Expr),
-    ) -> Stream<'a, Rc<Proof>> {
-        let scope = state.scope();
-        let conclusion = (scope, &self.conclusion);
-        let premises = self.premises.iter().map(|premise| (scope, premise));
+type Stream<'r, T> = BoxIter<'r, (State, T)>;
 
-        let state_or_none = state.unify(target, conclusion).into_iter();
-        let init = Box::new(state_or_none.map(|state| (state, Vector::new())));
+impl<'r> Invocation<'r> {
+    fn apply(&self, state: &State, target: (usize, &Expr)) -> Stream<'r, Rc<Proof>> {
+        let rule_name = &self.rule.name;
 
-        let states: Stream<Vector<_>> = premises.fold(init, |states, premise| {
+        let conclusion = (self.scope, &self.rule.conclusion);
+        let conclusion_state = state.unify(target, conclusion);
+        let premise_states = self.match_premises(conclusion_state);
+
+        let proof_states = premise_states.map(move |(state, proofs)| {
+            let proof = Proof::new(rule_name, &state, proofs, conclusion);
+            (state, Rc::new(proof))
+        });
+
+        Box::new(proof_states)
+    }
+
+    fn match_premises(&self, state: Option<State>) -> Stream<'r, Vector<Rc<Proof>>> {
+        let rule_set = self.rule_set;
+
+        let premises = self.rule.premises.iter().map(|expr| (self.scope, expr));
+        let init_states = Box::new(state.into_iter().map(|s| (s, Vector::new())));
+
+        premises.fold(init_states, |states, premise| {
             let streams = states.map(move |(state, proofs)| {
                 let proof_states = rule_set.derive_in_state(&state, premise);
                 proof_states.map(move |(state, proof)| (state, concat(&proofs, &proof)))
             });
 
             Box::new(Flatten::new(streams))
-        });
-
-        Box::new(states.map(move |(state, proofs)| {
-            let proof = Proof::new(&self.name, &state, proofs, conclusion);
-            (state, Rc::new(proof))
-        }))
+        })
     }
 }
 
