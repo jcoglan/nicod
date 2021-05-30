@@ -132,17 +132,17 @@ fn derive_in_reverse() {
 fn type_rules() -> RuleSet {
     let mut rules = RuleSet::new();
 
-    //  nil : List
+    //  λ[] : List
 
-    rules.insert("type-0", &expr!(seq(wrd(nil), wrd(is), wrd(List))), &[]);
+    rules.insert("type-0", &expr!(seq(lst(λ, []), wrd(is), wrd(List))), &[]);
 
-    //      $tail : List
-    //  --------------------
-    //  ($head $tail) : List
+    //        $tail : List
+    //  -----------------------
+    //  λ[$head | $tail] : List
 
     rules.insert(
         "type-N",
-        &expr!(seq(seq(var(head), var(tail)), wrd(is), wrd(List))),
+        &expr!(seq(lst(λ, [var(head) | var(tail)]), wrd(is), wrd(List))),
         &[expr!(seq(var(tail), wrd(is), wrd(List)))],
     );
 
@@ -164,13 +164,9 @@ fn type_rules() -> RuleSet {
 
 #[test]
 fn inductive_type_check() {
-    // (a (b (c nil))) : ?
+    // λ[a, b, c] : ?
 
-    let query = expr!(seq(
-        seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
-        wrd(is),
-        var(answer)
-    ));
+    let query = expr!(seq(lst(λ, [wrd(a), wrd(b), wrd(c),]), wrd(is), var(answer)));
 
     let results: Vec<_> = type_rules()
         .derive(&query)
@@ -182,13 +178,13 @@ fn inductive_type_check() {
 
 #[test]
 fn inductive_type_check_with_two_premises() {
-    // ((a (b (c nil))) ++ (d (e nil))) : ?
+    // (λ[a, b, c] ++ λ[d, e]) : ?
 
     let query = expr!(seq(
         seq(
-            seq(wrd(a), seq(wrd(b), seq(wrd(c), wrd(nil)))),
+            lst(λ, [wrd(a), wrd(b), wrd(c),]),
             wrd(plus),
-            seq(wrd(d), seq(wrd(e), wrd(nil)))
+            lst(λ, [wrd(d), wrd(e),])
         ),
         wrd(is),
         var(answer)
